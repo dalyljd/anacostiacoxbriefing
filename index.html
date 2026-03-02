@@ -4,103 +4,766 @@
 <meta charset="UTF-8">
 <title>ACB Coxswain Dashboard</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<style>
-body { font-family: Georgia, serif; margin:0; background:#eef2f5;}
-header { background:#0f2c44; color:white; text-align:center; padding:1.5rem;}
-#device-status { background:#163c5c; color:white; padding:.5rem 1rem; border-radius:5px; margin-top:.5rem;}
-main { max-width:1200px; margin:auto; padding:2rem;}
-.card { background:white; padding:1.5rem; margin-bottom:2rem; border-radius:10px; box-shadow:0 3px 10px rgba(0,0,0,0.1);}
-h2 { border-bottom:2px solid #ddd; padding-bottom:.5rem;}
-table { width:100%; border-collapse:collapse;}
-th, td { padding:.5rem; text-align:center; border-bottom:1px solid #ddd;}
-th { background:#f4f4f4;}
-.good{color:green;font-weight:bold;}
-.moderate{color:orange;font-weight:bold;}
-.bad{color:red;font-weight:bold;}
-.vector { font-size:3rem; text-align:center;}
-button { padding:.5rem 1rem; margin-top:.5rem; background:#0f2c44; color:white; border:none;}
-button:hover{background:#163c5c;}
-input{padding:.4rem;margin-top:.4rem;width:100%;}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem;}
-#map{height:300px;border-radius:10px;margin-top:1rem;}
-</style>
+<link href="https://fonts.googleapis.com/css2?family=Teko:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@300;400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
-</head>
+<style>
+:root {
+  --navy: #08111e;
+  --navy-mid: #0e1e30;
+  --navy-light: #162c42;
+  --water: #0a3a5c;
+  --teal: #0d8a7a;
+  --teal-bright: #12b5a2;
+  --amber: #e8a020;
+  --amber-dim: #a06b0e;
+  --red: #c0392b;
+  --green: #1e8a4a;
+  --text: #c8dae8;
+  --text-dim: #6a8aa0;
+  --text-bright: #e8f4ff;
+  --border: rgba(13,138,122,0.3);
+  --border-bright: rgba(13,138,122,0.7);
+  --grid-line: rgba(12,100,180,0.08);
+}
 
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'IBM Plex Sans', sans-serif;
+  background: var(--navy);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Background grid texture */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Noise overlay */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.4;
+}
+
+header {
+  position: relative;
+  z-index: 10;
+  background: linear-gradient(180deg, #060e18 0%, var(--navy) 100%);
+  border-bottom: 1px solid var(--border-bright);
+  padding: 1.2rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.header-title {
+  display: flex;
+  flex-direction: column;
+}
+
+.header-title .org {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--teal-bright);
+  margin-bottom: 0.2rem;
+}
+
+.header-title h1 {
+  font-family: 'Teko', sans-serif;
+  font-size: 2.2rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--text-bright);
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.header-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.6rem;
+}
+
+#device-status {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.7rem;
+  display: flex;
+  gap: 1rem;
+  color: var(--text-dim);
+}
+
+#device-status span { letter-spacing: 0.05em; }
+
+.btn-primary {
+  font-family: 'Teko', sans-serif;
+  font-size: 1.1rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  background: transparent;
+  color: var(--teal-bright);
+  border: 1px solid var(--teal-bright);
+  padding: 0.4rem 1.2rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-primary::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--teal-bright);
+  transform: translateX(-100%);
+  transition: transform 0.2s;
+  z-index: -1;
+}
+
+.btn-primary:hover {
+  color: var(--navy);
+}
+
+.btn-primary:hover::before {
+  transform: translateX(0);
+}
+
+.btn-sm {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: transparent;
+  color: var(--amber);
+  border: 1px solid var(--amber-dim);
+  padding: 0.35rem 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-sm:hover { background: var(--amber); color: var(--navy); }
+.btn-sm.danger { color: var(--red); border-color: #6e1e16; }
+.btn-sm.danger:hover { background: var(--red); color: white; }
+.btn-sm.success { color: var(--green); border-color: #0e4a26; }
+.btn-sm.success:hover { background: var(--green); color: white; }
+
+main {
+  position: relative;
+  z-index: 1;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 1.5rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto;
+  gap: 1.2rem;
+}
+
+.card {
+  background: var(--navy-mid);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 1.4rem;
+  position: relative;
+  overflow: hidden;
+  animation: fadeIn 0.5s ease both;
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--teal-bright), transparent);
+  opacity: 0.6;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.card:nth-child(1) { animation-delay: 0.05s; }
+.card:nth-child(2) { animation-delay: 0.1s; }
+.card:nth-child(3) { animation-delay: 0.15s; grid-column: 1 / -1; }
+.card:nth-child(4) { animation-delay: 0.2s; }
+.card:nth-child(5) { animation-delay: 0.25s; }
+
+.card-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--teal-bright);
+  margin-bottom: 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.card-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.card h2 {
+  font-family: 'Teko', sans-serif;
+  font-size: 1.6rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-bright);
+  margin-bottom: 1rem;
+  line-height: 1;
+}
+
+/* WIND CARD */
+.wind-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  align-items: center;
+}
+
+.wind-data-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.data-item label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  display: block;
+  margin-bottom: 0.1rem;
+}
+
+.data-item .val {
+  font-family: 'Teko', sans-serif;
+  font-size: 2rem;
+  font-weight: 400;
+  color: var(--text-bright);
+  line-height: 1;
+}
+
+.data-item .val .unit {
+  font-size: 0.9rem;
+  color: var(--text-dim);
+  margin-left: 0.2rem;
+}
+
+.compass-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.compass {
+  position: relative;
+  width: 110px;
+  height: 110px;
+}
+
+.compass-ring {
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  border: 1px solid var(--border-bright);
+  position: absolute;
+  background: radial-gradient(circle, var(--navy-light) 0%, var(--navy) 100%);
+  box-shadow: 0 0 20px rgba(13,138,122,0.2), inset 0 0 20px rgba(0,0,0,0.4);
+}
+
+.compass-ticks {
+  position: absolute;
+  inset: 0;
+}
+
+.compass-label {
+  position: absolute;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.55rem;
+  font-weight: 500;
+  color: var(--teal-bright);
+}
+
+.compass-label.n { top: 4px; left: 50%; transform: translateX(-50%); }
+.compass-label.s { bottom: 4px; left: 50%; transform: translateX(-50%); }
+.compass-label.e { right: 4px; top: 50%; transform: translateY(-50%); }
+.compass-label.w { left: 4px; top: 50%; transform: translateY(-50%); }
+
+#windArrow {
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 4px;
+  height: 50px;
+  background: linear-gradient(180deg, var(--amber) 0%, transparent 100%);
+  transform-origin: 50% 90%;
+  transform: translateX(-50%) translateY(-90%) rotate(0deg);
+  transition: transform 0.5s ease;
+  border-radius: 2px 2px 0 0;
+}
+
+#windArrow::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-bottom: 10px solid var(--amber);
+}
+
+.center-dot {
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--teal-bright);
+  transform: translate(-50%, -50%);
+  z-index: 2;
+}
+
+#impact-badge {
+  font-family: 'Teko', sans-serif;
+  font-size: 1.1rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--amber);
+  margin-top: 0.5rem;
+  text-align: center;
+}
+
+/* TELEMETRY CARD */
+.telemetry-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.8rem;
+  margin-bottom: 1rem;
+}
+
+.tele-box {
+  background: var(--navy);
+  border: 1px solid var(--border);
+  padding: 0.8rem;
+  text-align: center;
+  position: relative;
+}
+
+.tele-box label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  display: block;
+  margin-bottom: 0.3rem;
+}
+
+.tele-box .tele-val {
+  font-family: 'Teko', sans-serif;
+  font-size: 2.2rem;
+  font-weight: 500;
+  color: var(--text-bright);
+  line-height: 1;
+}
+
+.tele-box .tele-unit {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.62rem;
+  color: var(--text-dim);
+  margin-top: 0.1rem;
+}
+
+.tele-box.highlight .tele-val { color: var(--teal-bright); }
+.tele-box.highlight { border-color: var(--teal); }
+
+#map { height: 240px; border-radius: 1px; margin: 0.8rem 0; border: 1px solid var(--border); }
+
+.race-controls { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+
+/* WEATHER TABLE */
+.weather-grid-full {
+  grid-column: 1 / -1;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.75rem;
+}
+
+thead tr {
+  border-bottom: 1px solid var(--border-bright);
+}
+
+th {
+  padding: 0.5rem 0.7rem;
+  text-align: left;
+  color: var(--teal-bright);
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-size: 0.65rem;
+}
+
+td {
+  padding: 0.45rem 0.7rem;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  color: var(--text);
+}
+
+tbody tr:hover { background: rgba(13,138,122,0.05); }
+
+.good { color: #1fba6a; font-weight: 500; }
+.moderate { color: var(--amber); font-weight: 500; }
+.bad { color: var(--red); font-weight: 500; }
+
+.practice-banner {
+  margin-top: 0.8rem;
+  padding: 0.7rem 1rem;
+  background: var(--navy);
+  border: 1px solid var(--border);
+  font-family: 'Teko', sans-serif;
+  font-size: 1.3rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* TIDE */
+.tide-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  align-items: start;
+}
+
+.current-strength {
+  text-align: center;
+  padding: 1rem;
+  background: var(--navy);
+  border: 1px solid var(--border);
+  border-radius: 1px;
+}
+
+.current-strength label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  display: block;
+  margin-bottom: 0.4rem;
+}
+
+.current-strength .strength-val {
+  font-family: 'Teko', sans-serif;
+  font-size: 2.8rem;
+  font-weight: 500;
+  color: var(--teal-bright);
+  line-height: 1;
+}
+
+/* TOOLS */
+.tools-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.tool-panel {
+  background: var(--navy);
+  border: 1px solid var(--border);
+  padding: 1rem;
+}
+
+.tool-panel h3 {
+  font-family: 'Teko', sans-serif;
+  font-size: 1.3rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-bright);
+  margin-bottom: 0.8rem;
+}
+
+.bearing-display {
+  font-family: 'Teko', sans-serif;
+  font-size: 2.4rem;
+  color: var(--text-bright);
+  line-height: 1;
+  margin: 0.4rem 0;
+}
+
+.bearing-diff {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.78rem;
+  color: var(--amber);
+  margin-top: 0.4rem;
+}
+
+.countdown-big {
+  font-family: 'Teko', sans-serif;
+  font-size: 4rem;
+  font-weight: 600;
+  color: var(--teal-bright);
+  line-height: 1;
+  text-align: center;
+  margin-top: 0.5rem;
+  transition: color 0.3s;
+}
+
+.countdown-big.urgent { color: var(--red); }
+.countdown-big.go { color: #1fba6a; letter-spacing: 0.1em; }
+
+input[type="text"], input[type="number"], input:not([type]) {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.85rem;
+  background: var(--navy);
+  border: 1px solid var(--border);
+  color: var(--text-bright);
+  padding: 0.45rem 0.7rem;
+  width: 100%;
+  margin-top: 0.4rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+input:focus { border-color: var(--teal-bright); }
+
+/* Responsive */
+@media (max-width: 768px) {
+  main { grid-template-columns: 1fr; }
+  .card:nth-child(3) { grid-column: 1; }
+  .wind-layout { grid-template-columns: 1fr; }
+  .telemetry-grid { grid-template-columns: repeat(2, 1fr); }
+  .tools-grid { grid-template-columns: 1fr; }
+  header { flex-direction: column; align-items: flex-start; }
+  .header-right { align-items: flex-start; }
+}
+
+/* Blinking dot for live indicator */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.2; }
+}
+
+.live-dot {
+  display: inline-block;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--teal-bright);
+  animation: blink 1.4s ease-in-out infinite;
+  margin-right: 4px;
+}
+
+.live-dot.inactive { background: var(--text-dim); animation: none; }
+</style>
+</head>
 <body>
+
 <header>
-<h1>Anacostia Community Boathouse Coxswain Dashboard</h1>
-<button onclick="enableSensors()">Enable GPS & Heading</button>
-<div id="device-status">
-<strong>Device Status:</strong>
-<span id="status-gps">GPS: ❌</span> | 
-<span id="status-heading">Heading: ❌</span>
-</div>
+  <div class="header-title">
+    <span class="org">Anacostia Community Boathouse</span>
+    <h1>Coxswain Dashboard</h1>
+  </div>
+  <div class="header-right">
+    <div id="device-status">
+      <span id="status-gps"><span class="live-dot inactive" id="dot-gps"></span>GPS: OFFLINE</span>
+      <span id="status-heading"><span class="live-dot inactive" id="dot-hdg"></span>HEADING: OFFLINE</span>
+    </div>
+    <button class="btn-primary" onclick="enableSensors()">Enable GPS & Heading</button>
+  </div>
 </header>
 
 <main>
 
-<div class="card">
-<h2>Live Wind Relative to Boat</h2>
-<p><strong>Heading:</strong> <span id="heading">—</span>°</p>
-<p><strong>Wind:</strong> <span id="winddir">—</span>° @ <span id="windspeed">—</span> m/s</p>
-<div class="vector" id="windVector">↑</div>
-<p id="impact"></p>
-</div>
+  <!-- WIND CARD -->
+  <div class="card">
+    <div class="card-label">Live Sensors</div>
+    <h2>Wind & Heading</h2>
+    <div class="wind-layout">
+      <div class="wind-data-row">
+        <div class="data-item">
+          <label>Boat Heading</label>
+          <div class="val"><span id="heading">—</span><span class="unit">°</span></div>
+        </div>
+        <div class="data-item">
+          <label>Wind Direction</label>
+          <div class="val"><span id="winddir">—</span><span class="unit">°</span></div>
+        </div>
+        <div class="data-item">
+          <label>Wind Speed</label>
+          <div class="val"><span id="windspeed">—</span><span class="unit">kts</span></div>
+        </div>
+        <div id="impact-badge">—</div>
+      </div>
+      <div class="compass-wrap">
+        <div class="compass">
+          <div class="compass-ring"></div>
+          <svg style="position:absolute;inset:0;" width="110" height="110">
+            <!-- Tick marks -->
+            <g id="ticks"></g>
+          </svg>
+          <span class="compass-label n">N</span>
+          <span class="compass-label s">S</span>
+          <span class="compass-label e">E</span>
+          <span class="compass-label w">W</span>
+          <div id="windArrow"></div>
+          <div class="center-dot"></div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-<div class="card">
-<h2>GPS Race Telemetry</h2>
-<p><strong>Speed:</strong> <span id="speed">—</span> m/s</p>
-<p><strong>Distance:</strong> <span id="distance">0</span> m</p>
-<p><strong>Elapsed Time:</strong> <span id="race-time">0</span> s</p>
-<p><strong>500 m Split:</strong> <span id="split500">—</span></p>
-<p><strong>Next 500 m Split:</strong> <span id="nextSplit">—</span></p>
-<div id="map"></div>
-<button onclick="startRace()">Start Race</button>
-<button onclick="stopRace()">Stop Race</button>
-<button onclick="downloadData()">Download Race Data</button>
-</div>
+  <!-- TELEMETRY CARD -->
+  <div class="card">
+    <div class="card-label">GPS Race Telemetry</div>
+    <h2>Race Monitor</h2>
+    <div class="telemetry-grid">
+      <div class="tele-box">
+        <label>500m Split</label>
+        <div class="tele-val" id="speed" style="font-size:1.5rem;">—</div>
+        <div class="tele-unit">/500m</div>
+      </div>
+      <div class="tele-box">
+        <label>Distance</label>
+        <div class="tele-val" id="distance">0</div>
+        <div class="tele-unit">meters</div>
+      </div>
+      <div class="tele-box">
+        <label>Elapsed</label>
+        <div class="tele-val" id="race-time">0</div>
+        <div class="tele-unit">seconds</div>
+      </div>
+      <div class="tele-box highlight">
+        <label>500m Split</label>
+        <div class="tele-val" id="split500" style="font-size:1.4rem;">—</div>
+        <div class="tele-unit">/500m</div>
+      </div>
+      <div class="tele-box highlight" style="grid-column: span 2;">
+        <label>Next 500m Est.</label>
+        <div class="tele-val" id="nextSplit" style="font-size:1.4rem;">—</div>
+        <div class="tele-unit">/500m</div>
+      </div>
+    </div>
+    <div id="map"></div>
+    <div class="race-controls">
+      <button class="btn-sm success" onclick="startRace()">▶ Start Race</button>
+      <button class="btn-sm danger" onclick="stopRace()">■ Stop</button>
+      <button class="btn-sm" onclick="downloadData()">↓ Download CSV</button>
+    </div>
+  </div>
 
-<div class="card">
-<h2>Hourly Forecast (Next 12h)</h2>
-<table id="weather-table">
-<thead>
-<tr><th>Time</th><th>Temp (°C)</th><th>Wind (m/s)</th><th>Dir</th><th>Rating</th></tr>
-</thead>
-<tbody></tbody>
-</table>
-<p><strong>Practice Recommendation:</strong> <span id="practice-rating"></span></p>
-</div>
+  <!-- WEATHER TABLE - full width -->
+  <div class="card weather-grid-full">
+    <div class="card-label">Open-Meteo API</div>
+    <h2>Hourly Forecast — Next 12 Hours</h2>
+    <table id="weather-table">
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>Temp °F</th>
+          <th>Wind kts</th>
+          <th>Direction</th>
+          <th>Condition</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <div class="practice-banner" id="practice-rating">
+      <span style="color:var(--text-dim);font-size:0.85rem;font-family:'IBM Plex Mono',monospace;">AWAITING LOCATION DATA…</span>
+    </div>
+  </div>
 
-<div class="card">
-<h2>High & Low Tides</h2>
-<table id="tide-table">
-<thead><tr><th>Type</th><th>Time</th><th>Height (ft)</th></tr></thead>
-<tbody></tbody>
-</table>
-<p><strong>Estimated Current Strength:</strong> <span id="current-estimate"></span></p>
-</div>
+  <!-- TIDES -->
+  <div class="card">
+    <div class="card-label">NOAA Station 8594900</div>
+    <h2>Tide Predictions</h2>
+    <div class="tide-split">
+      <table id="tide-table">
+        <thead><tr><th>Type</th><th>Time</th><th>Ht (ft)</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <div class="current-strength">
+        <label>Current Strength</label>
+        <div class="strength-val" id="current-estimate">—</div>
+      </div>
+    </div>
+  </div>
 
-<div class="card">
-<h2>Coxswain Tools</h2>
-<div class="grid">
+  <!-- TOOLS -->
+  <div class="card">
+    <div class="card-label">Navigation &amp; Start</div>
+    <h2>Coxswain Tools</h2>
+    <div class="tools-grid">
+      <div class="tool-panel">
+        <h3>Bearing Lock</h3>
+        <div class="bearing-display"><span id="locked">—</span>°</div>
+        <div class="bearing-diff" id="bearing-diff">LOCKED HEADING</div>
+        <button class="btn-sm" style="margin-top:0.7rem;" onclick="lockBearing()">⊕ Lock Current</button>
+      </div>
+      <div class="tool-panel" style="text-align:center;">
+        <h3>Start Countdown</h3>
+        <input id="countdown-input" placeholder="Seconds (e.g. 10)" type="number">
+        <button class="btn-sm" style="margin-top:0.6rem;width:100%;" onclick="startCountdown()">▶ Start Timer</button>
+        <div class="countdown-big" id="countdown-display"></div>
+      </div>
+    </div>
+  </div>
+  <!-- SUNSET -->
+  <div class="card" style="animation-delay:0.3s;">
+    <div class="card-label">Open-Meteo API</div>
+    <h2>Sun & Sky</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+      <div class="tele-box">
+        <label>Sunrise</label>
+        <div class="tele-val" id="sunrise-time" style="font-size:1.5rem;">—</div>
+        <div class="tele-unit">local time</div>
+      </div>
+      <div class="tele-box highlight">
+        <label>Sunset</label>
+        <div class="tele-val" id="sunset-time" style="font-size:1.5rem;">—</div>
+        <div class="tele-unit">local time</div>
+      </div>
+    </div>
+    <div style="margin-top:1rem;background:var(--navy);border:1px solid var(--border);padding:0.8rem 1rem;">
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:0.6rem;letter-spacing:0.18em;text-transform:uppercase;color:var(--text-dim);margin-bottom:0.4rem;">Light Remaining</div>
+      <div style="font-family:'Teko',sans-serif;font-size:1.8rem;color:var(--amber);" id="daylight-remaining">—</div>
+    </div>
+  </div>
 
-<div>
-<h3>Bearing Lock</h3>
-<button onclick="lockBearing()">Lock Current Heading</button>
-<p>Locked: <span id="locked">—</span></p>
-<p id="bearing-diff"></p>
-</div>
 
-<div>
-<h3>Start Countdown</h3>
-<input id="countdown-input" placeholder="Seconds">
-<button onclick="startCountdown()">Start</button>
-<p id="countdown-display"></p>
-</div>
-
-</div>
-</div>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script>
@@ -111,22 +774,43 @@ let totalDistance = 0, raceData = [], timerInterval = null;
 let headingSupported = false;
 const NOAA_STATION = "8594900";
 
+/* ===== Draw compass ticks ===== */
+(function drawTicks(){
+  const g = document.getElementById('ticks');
+  const cx = 55, cy = 55, r1 = 50, r2 = 44;
+  for(let i=0;i<36;i++){
+    const a=(i*10-90)*Math.PI/180;
+    const major = i%9===0;
+    const r3 = major ? 38 : 42;
+    const x1=cx+r1*Math.cos(a), y1=cy+r1*Math.sin(a);
+    const x2=cx+r3*Math.cos(a), y2=cy+r3*Math.sin(a);
+    const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+    line.setAttribute('x1',x1); line.setAttribute('y1',y1);
+    line.setAttribute('x2',x2); line.setAttribute('y2',y2);
+    line.setAttribute('stroke', major ? 'rgba(13,181,162,0.8)' : 'rgba(13,138,122,0.35)');
+    line.setAttribute('stroke-width', major ? '1.5' : '0.8');
+    g.appendChild(line);
+  }
+})();
+
 /* ===== Device Status ===== */
 function updateDeviceStatus(){
-  document.getElementById("status-gps").innerText = lat!==null?"GPS: ✅":"GPS: ❌";
-  document.getElementById("status-heading").innerText = headingSupported?"Heading: ✅":"Heading: ❌";
+  const gpsOk = lat!==null;
+  const hdgOk = headingSupported;
+  document.getElementById("status-gps").innerHTML = `<span class="live-dot${gpsOk?'':' inactive'}" id="dot-gps"></span>GPS: ${gpsOk?'ONLINE':'OFFLINE'}`;
+  document.getElementById("status-heading").innerHTML = `<span class="live-dot${hdgOk?'':' inactive'}" id="dot-hdg"></span>HEADING: ${hdgOk?'ONLINE':'OFFLINE'}`;
 }
 
 /* ===== Map Setup ===== */
-let map = L.map('map').setView([38.88,-76.98],14);
+let map = L.map('map', {zoomControl: false}).setView([38.88,-76.98],14);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'OSM'}).addTo(map);
-let path = L.polyline([], {color:'blue'}).addTo(map);
+let path = L.polyline([], {color:'#12b5a2', weight:3}).addTo(map);
 
 /* ===== Sensor Enable ===== */
 async function enableSensors(){
   headingSupported=false;
   if(typeof DeviceOrientationEvent !== "undefined" && typeof DeviceOrientationEvent.requestPermission === "function"){
-    try{let r=await DeviceOrientationEvent.requestPermission(); if(r==="granted") headingSupported=true;}catch(e){console.log("Heading unavailable");}
+    try{ let r=await DeviceOrientationEvent.requestPermission(); if(r==="granted") headingSupported=true; }catch(e){ console.log("Heading unavailable"); }
   } else if(window.DeviceOrientationEvent) headingSupported=true;
 
   if(headingSupported){
@@ -134,8 +818,8 @@ async function enableSensors(){
       if(e.alpha!==null){ boatHeading=360-e.alpha; updateLive(); updateDeviceStatus(); }
     });
   } else {
-    alert("Heading unavailable. Wind vector & bearing lock disabled.");
-    document.getElementById("windVector").innerText="N/A";
+    alert("Heading sensor unavailable. Wind vector & bearing lock disabled.");
+    document.getElementById("windArrow").style.display="none";
     document.getElementById("locked").innerText="N/A";
     document.getElementById("bearing-diff").innerText="N/A";
     updateDeviceStatus();
@@ -154,80 +838,127 @@ async function enableSensors(){
 }
 
 /* ===== Live Wind ===== */
-function angleDiff(a,b){let d=Math.abs(a-b)%360; return d>180?360-d:d;}
+function angleDiff(a,b){ let d=Math.abs(a-b)%360; return d>180?360-d:d; }
+
 function updateLive(){
   if(!headingSupported) return;
-  if(boatHeading===null || windDir===null) return;
+  if(boatHeading===null) return;
   document.getElementById("heading").innerText=boatHeading.toFixed(0);
-  document.getElementById("winddir").innerText=windDir.toFixed(0);
-  document.getElementById("windspeed").innerText=windSpeed.toFixed(1);
-  const rel=(windDir-boatHeading+360)%360;
-  document.getElementById("windVector").style.transform=`rotate(${rel}deg)`;
-  let diff=angleDiff(boatHeading,lockedBearing||boatHeading);
-  let impact=diff<45?"Headwind":diff>135?"Tailwind":rel<180?"Starboard Cross":"Port Cross";
-  document.getElementById("impact").innerText=impact+" ("+diff.toFixed(0)+"°)";
+
+  if(windDir!==null && windSpeed!==null){
+    document.getElementById("winddir").innerText=windDir.toFixed(0);
+    document.getElementById("windspeed").innerText=windSpeed.toFixed(1);
+    const rel=(windDir-boatHeading+360)%360;
+    // Rotate arrow: rel=0 means wind from front (headwind)
+    const arrow = document.getElementById("windArrow");
+    arrow.style.transform=`translateX(-50%) translateY(-90%) rotate(${rel}deg)`;
+    let diff=angleDiff(boatHeading, windDir);
+    let impact=diff<45?"HEADWIND":diff>135?"TAILWIND":rel<180?"STARBOARD CROSS":"PORT CROSS";
+    document.getElementById("impact-badge").innerText=impact+" ("+diff.toFixed(0)+"°)";
+  }
   updateBearing();
 }
 
 /* ===== Weather ===== */
 async function fetchWeatherCurrent(){
   if(lat===null) return;
-  const url=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&windspeed_unit=ms`;
-  const res=await fetch(url); const data=await res.json();
-  windDir=data.current_weather.winddirection;
-  windSpeed=data.current_weather.windspeed;
-  updateLive(); fetchHourly();
-}
-async function fetchHourly(){
-  const url=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,wind_speed_10m,wind_direction_10m&temperature_unit=celsius&windspeed_unit=ms&forecast_days=1&timezone=auto`;
-  const res=await fetch(url); const data=await res.json();
-  const tbody=document.querySelector("#weather-table tbody"); tbody.innerHTML="";
-  const now=new Date(); let count=0, worst=0;
-  data.hourly.time.forEach((t,i)=>{
-    const time=new Date(t);
-    if(time>=now && count<12){
-      const temp=data.hourly.temperature_2m[i];
-      const wind=data.hourly.wind_speed_10m[i];
-      const dir=data.hourly.wind_direction_10m[i];
-      if(wind>worst) worst=wind;
-      let rating="GOOD",cls="good";
-      if(wind>5){rating="MODERATE";cls="moderate";}
-      if(wind>8){rating="POOR";cls="bad";}
-      tbody.innerHTML+=`<tr>
-      <td>${time.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</td>
-      <td>${temp}</td>
-      <td>${wind}</td>
-      <td>${dir}°</td>
-      <td class="${cls}">${rating}</td></tr>`;
-      count++;
-    }
-  });
-  document.getElementById("practice-rating").innerHTML=worst>8?"<span class='bad'>Likely Cancel</span>":worst>5?"<span class='moderate'>Experienced Crews Only</span>":"<span class='good'>Full Practice Recommended</span>";
+  try {
+    const url=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&windspeed_unit=kn`;
+    const res=await fetch(url); const data=await res.json();
+    windDir=data.current_weather.winddirection;
+    windSpeed=data.current_weather.windspeed; // now in knots
+    updateLive(); fetchHourly(); fetchSunset();
+  } catch(e){ console.log("Weather fetch error",e); }
 }
 
-/* ===== Tides ===== */
+async function fetchHourly(){
+  const url=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,wind_speed_10m,wind_direction_10m&temperature_unit=fahrenheit&windspeed_unit=kn&forecast_days=1&timezone=auto`;
+  try {
+    const res=await fetch(url); const data=await res.json();
+    const tbody=document.querySelector("#weather-table tbody"); tbody.innerHTML="";
+    const now=new Date(); let count=0, worst=0;
+    data.hourly.time.forEach((t,i)=>{
+      const time=new Date(t);
+      if(time>=now && count<12){
+        const temp=data.hourly.temperature_2m[i];
+        const wind=data.hourly.wind_speed_10m[i]; // knots
+        const dir=data.hourly.wind_direction_10m[i];
+        if(wind>worst) worst=wind;
+        // thresholds in knots: ~10 kts = moderate, ~16 kts = poor
+        let rating="GOOD", cls="good";
+        if(wind>10){rating="MODERATE";cls="moderate";}
+        if(wind>16){rating="POOR";cls="bad";}
+        tbody.innerHTML+=`<tr>
+          <td>${time.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</td>
+          <td>${temp}°</td>
+          <td>${wind.toFixed(1)}</td>
+          <td>${dir}°</td>
+          <td class="${cls}">${rating}</td>
+        </tr>`;
+        count++;
+      }
+    });
+    const pr = document.getElementById("practice-rating");
+    if(worst>16) pr.innerHTML=`<span class="bad">⚠ LIKELY CANCEL — Winds Exceed Safe Limit</span>`;
+    else if(worst>10) pr.innerHTML=`<span class="moderate">△ EXPERIENCED CREWS ONLY — Elevated Wind</span>`;
+    else pr.innerHTML=`<span class="good">✓ FULL PRACTICE RECOMMENDED</span>`;
+  } catch(e){ console.log("Hourly fetch error",e); }
+}
+
+/* ===== Sunset ===== */
+async function fetchSunset(){
+  if(lat===null) return;
+  try {
+    const url=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=sunrise,sunset&timezone=auto&forecast_days=1`;
+    const res=await fetch(url); const data=await res.json();
+    const sunrise=new Date(data.daily.sunrise[0]);
+    const sunset=new Date(data.daily.sunset[0]);
+    document.getElementById("sunrise-time").innerText=sunrise.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+    document.getElementById("sunset-time").innerText=sunset.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+    // Update daylight remaining every minute
+    function updateRemaining(){
+      const now=new Date();
+      const diffMs=sunset-now;
+      if(diffMs<=0){ document.getElementById("daylight-remaining").innerText="SUN HAS SET"; return; }
+      const h=Math.floor(diffMs/3600000);
+      const m=Math.floor((diffMs%3600000)/60000);
+      document.getElementById("daylight-remaining").innerText=`${h}h ${m}m until sunset`;
+    }
+    updateRemaining();
+    setInterval(updateRemaining, 60000);
+  } catch(e){ console.log("Sunset fetch error",e); }
+}
+
+
 async function fetchTides(){
   const today=new Date(); const dateStr=today.toISOString().slice(0,10).replaceAll("-","");
   const url=`https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=predictions&begin_date=${dateStr}&end_date=${dateStr}&datum=MLLW&station=${NOAA_STATION}&time_zone=lst_ldt&units=english&interval=hilo&format=json`;
-  const res=await fetch(url); const data=await res.json();
-  const tbody=document.querySelector("#tide-table tbody"); tbody.innerHTML=""; let heights=[];
-  data.predictions.forEach(e=>{
-    tbody.innerHTML+=`<tr>
-    <td>${e.type==="H"?"High":"Low"}</td>
-    <td>${new Date(e.t).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</td>
-    <td>${e.v}</td></tr>`;
-    heights.push(parseFloat(e.v));
-  });
-  if(heights.length>=2){
-    const diff=Math.max(...heights)-Math.min(...heights);
-    document.getElementById("current-estimate").innerText=diff>3?"Strong":diff>1.5?"Moderate":"Light";
-  }
+  try {
+    const res=await fetch(url); const data=await res.json();
+    const tbody=document.querySelector("#tide-table tbody"); tbody.innerHTML=""; let heights=[];
+    data.predictions.forEach(e=>{
+      tbody.innerHTML+=`<tr>
+        <td style="color:${e.type==='H'?'var(--teal-bright)':'var(--text-dim)'}">${e.type==="H"?"↑ HIGH":"↓ LOW"}</td>
+        <td>${new Date(e.t).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</td>
+        <td>${e.v}</td>
+      </tr>`;
+      heights.push(parseFloat(e.v));
+    });
+    if(heights.length>=2){
+      const diff=Math.max(...heights)-Math.min(...heights);
+      const label = diff>3?"STRONG":diff>1.5?"MODERATE":"LIGHT";
+      document.getElementById("current-estimate").innerText=label;
+      document.getElementById("current-estimate").style.color=diff>3?"var(--red)":diff>1.5?"var(--amber)":"var(--green)";
+    }
+  } catch(e){ console.log("Tide fetch error",e); }
 }
 fetchTides();
+// Pre-load sunset for default ACB location
+lat=38.88; lon=-76.98; fetchSunset(); lat=null; lon=null;
 
 /* ===== Race Telemetry ===== */
 function haversine(lat1,lon1,lat2,lon2){
-  const R=6371000,toRad=x=>x*Math.PI/180;
+  const R=6371000, toRad=x=>x*Math.PI/180;
   const dLat=toRad(lat2-lat1), dLon=toRad(lon2-lon1);
   const a=Math.sin(dLat/2)**2+Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
   return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
@@ -236,61 +967,111 @@ function haversine(lat1,lon1,lat2,lon2){
 function startRace(){
   raceActive=true; raceStartTime=Date.now();
   totalDistance=0; lastPosition=null; raceData=[];
+  path.setLatLngs([]);
   timerInterval=setInterval(()=>document.getElementById("race-time").innerText=Math.floor((Date.now()-raceStartTime)/1000),1000);
 }
 
 function stopRace(){ raceActive=false; clearInterval(timerInterval); }
 
 function updateSpeed(pos){
-  const speed=pos.coords.speed?pos.coords.speed:0;
-  document.getElementById("speed").innerText=speed.toFixed(2);
+  const speedMs=pos.coords.speed?pos.coords.speed:0;
+
+  // Display current split time (time to row 500m at current speed)
+  if(speedMs>0){
+    const splitSec=500/speedMs;
+    const m=Math.floor(splitSec/60), s=Math.floor(splitSec%60);
+    document.getElementById("speed").innerText=`${m}:${String(s).padStart(2,'0')}`;
+  } else {
+    document.getElementById("speed").innerText="—";
+  }
 
   if(raceActive){
-    const lat=pos.coords.latitude, lon=pos.coords.longitude;
+    const _lat=pos.coords.latitude, _lon=pos.coords.longitude;
     if(lastPosition){
-      const d=haversine(lastPosition.lat,lastPosition.lon,lat,lon);
-      totalDistance+=d; document.getElementById("distance").innerText=totalDistance.toFixed(1);
+      const d=haversine(lastPosition.lat,lastPosition.lon,_lat,_lon);
+      const prevTotal=totalDistance;
+      totalDistance+=d;
+      document.getElementById("distance").innerText=totalDistance.toFixed(1);
 
-      // Rolling 500m split
+      // Rolling average 500m split
       if(totalDistance>0){
-        const splitSec = (Date.now()-raceStartTime)/1000 / (totalDistance/500);
-        const m = Math.floor(splitSec/60), s = Math.floor(splitSec%60);
-        document.getElementById("split500").innerText = `${m}:${String(s).padStart(2,'0')} /500m`;
+        const splitSec=(Date.now()-raceStartTime)/1000/(totalDistance/500);
+        const m=Math.floor(splitSec/60), s=Math.floor(splitSec%60);
+        document.getElementById("split500").innerText=`${m}:${String(s).padStart(2,'0')}`;
       }
 
-      // Estimated next 500m split
-      if(speed>0){
-        const remainingMeters = 500 - (totalDistance % 500);
-        const estSec = remainingMeters / speed;
-        const m2 = Math.floor(estSec/60), s2 = Math.floor(estSec%60);
-        document.getElementById("nextSplit").innerText = `${m2}:${String(s2).padStart(2,'0')} /500m`;
+      // Estimated next 500m split based on current speed
+      if(speedMs>0){
+        const remainingMeters=500-(totalDistance%500);
+        const estSec=remainingMeters/speedMs;
+        const m2=Math.floor(estSec/60), s2=Math.floor(estSec%60);
+        document.getElementById("nextSplit").innerText=`${m2}:${String(s2).padStart(2,'0')}`;
+      }
+
+      // Record a CSV row every time we cross a 500m boundary
+      const prevInterval=Math.floor(prevTotal/500);
+      const currInterval=Math.floor(totalDistance/500);
+      if(currInterval>prevInterval && totalDistance>0){
+        const elapsedSec=(Date.now()-raceStartTime)/1000;
+        const avgSplitSec=elapsedSec/(totalDistance/500);
+        const am=Math.floor(avgSplitSec/60), as2=Math.floor(avgSplitSec%60);
+        raceData.push({
+          interval: currInterval,
+          distance_m: totalDistance,
+          elapsed_s: elapsedSec,
+          lat:_lat, lon:_lon,
+          avg_split:`${am}:${String(as2).padStart(2,'0')}`,
+          speed_ms: speedMs
+        });
       }
     }
-    raceData.push({time:(Date.now()-raceStartTime)/1000,lat,lon,speed,distance:totalDistance});
-    lastPosition={lat,lon};
-    path.addLatLng([lat,lon]);
-    map.panTo([lat,lon],{animate:true});
+    lastPosition={lat:_lat,lon:_lon};
+    path.addLatLng([_lat,_lon]);
+    map.panTo([_lat,_lon],{animate:true});
   }
 }
 
-/* ===== Download CSV ===== */
+/* ===== CSV Download ===== */
 function downloadData(){
-  let csv="time_s,lat,lon,speed_m_s,distance_m\n";
-  raceData.forEach(r=>csv+=`${r.time.toFixed(2)},${r.lat},${r.lon},${r.speed.toFixed(2)},${r.distance.toFixed(1)}\n`);
+  let csv="interval_500m,distance_m,elapsed_s,avg_split_per_500m,lat,lon,speed_ms\n";
+  raceData.forEach(r=>csv+=`${r.interval},${r.distance_m.toFixed(1)},${r.elapsed_s.toFixed(1)},${r.avg_split},${r.lat},${r.lon},${r.speed_ms.toFixed(2)}\n`);
   const blob=new Blob([csv],{type:"text/csv"});
   const url=URL.createObjectURL(blob); const a=document.createElement("a");
-  a.href=url; a.download="race_data.csv"; a.click();
+  a.href=url; a.download="race_data_500m.csv"; a.click();
 }
 
 /* ===== Bearing Lock ===== */
-function lockBearing(){ if(!headingSupported||boatHeading===null) return; lockedBearing=boatHeading; document.getElementById("locked").innerText=lockedBearing.toFixed(0); }
-function updateBearing(){ if(!headingSupported||lockedBearing===null||boatHeading===null) return; let diff=angleDiff(boatHeading,lockedBearing); document.getElementById("bearing-diff").innerText="Off by "+diff.toFixed(1)+"°"; }
+function lockBearing(){
+  if(!headingSupported||boatHeading===null) return;
+  lockedBearing=boatHeading;
+  document.getElementById("locked").innerText=lockedBearing.toFixed(0);
+}
+
+function updateBearing(){
+  if(!headingSupported||lockedBearing===null||boatHeading===null) return;
+  let diff=angleDiff(boatHeading,lockedBearing);
+  const dir = ((boatHeading - lockedBearing + 360)%360) < 180 ? "▶ R" : "◀ L";
+  document.getElementById("bearing-diff").innerText=diff<1?"ON COURSE":diff.toFixed(1)+"° OFF — CORRECT "+dir;
+  document.getElementById("bearing-diff").style.color=diff<2?"var(--green)":diff<10?"var(--amber)":"var(--red)";
+}
 
 /* ===== Countdown ===== */
 function startCountdown(){
-  let sec=parseInt(document.getElementById("countdown-input").value); if(isNaN(sec)) return;
-  const display=document.getElementById("countdown-display"); display.innerText=sec;
-  const interval=setInterval(()=>{ sec--; display.innerText=sec; if(sec<=0){clearInterval(interval); display.innerText="GO";} },1000);
+  let sec=parseInt(document.getElementById("countdown-input").value);
+  if(isNaN(sec)||sec<=0) return;
+  const display=document.getElementById("countdown-display");
+  display.className="countdown-big";
+  display.innerText=sec;
+  const interval=setInterval(()=>{
+    sec--;
+    display.innerText=sec;
+    if(sec<=5 && sec>0) display.className="countdown-big urgent";
+    if(sec<=0){
+      clearInterval(interval);
+      display.innerText="GO!";
+      display.className="countdown-big go";
+    }
+  },1000);
 }
 </script>
 </body>
