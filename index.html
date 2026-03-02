@@ -7,23 +7,26 @@
 <link href="https://fonts.googleapis.com/css2?family=Teko:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@300;400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 <style>
+/* ============================================================
+   CSS CUSTOM PROPERTIES — Color palette & design tokens
+   ============================================================ */
 :root {
-  --navy: #08111e;
-  --navy-mid: #0e1e30;
-  --navy-light: #162c42;
-  --water: #0a3a5c;
-  --teal: #0d8a7a;
-  --teal-bright: #12b5a2;
-  --amber: #e8a020;
-  --amber-dim: #a06b0e;
-  --red: #c0392b;
-  --green: #1e8a4a;
-  --text: #c8dae8;
-  --text-dim: #6a8aa0;
-  --text-bright: #e8f4ff;
-  --border: rgba(13,138,122,0.3);
+  --navy:          #08111e;
+  --navy-mid:      #0e1e30;
+  --navy-light:    #162c42;
+  --water:         #0a3a5c;
+  --teal:          #0d8a7a;
+  --teal-bright:   #12b5a2;
+  --amber:         #e8a020;
+  --amber-dim:     #a06b0e;
+  --red:           #c0392b;
+  --green:         #1e8a4a;
+  --text:          #c8dae8;
+  --text-dim:      #6a8aa0;
+  --text-bright:   #e8f4ff;
+  --border:        rgba(13,138,122,0.3);
   --border-bright: rgba(13,138,122,0.7);
-  --grid-line: rgba(12,100,180,0.08);
+  --grid-line:     rgba(12,100,180,0.08);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -60,6 +63,9 @@ body::after {
   opacity: 0.4;
 }
 
+/* ============================================================
+   HEADER
+   ============================================================ */
 header {
   position: relative;
   z-index: 10;
@@ -73,10 +79,7 @@ header {
   flex-wrap: wrap;
 }
 
-.header-title {
-  display: flex;
-  flex-direction: column;
-}
+.header-title { display: flex; flex-direction: column; }
 
 .header-title .org {
   font-family: 'IBM Plex Mono', monospace;
@@ -110,10 +113,14 @@ header {
   display: flex;
   gap: 1rem;
   color: var(--text-dim);
+  flex-wrap: wrap;
 }
 
 #device-status span { letter-spacing: 0.05em; }
 
+/* ============================================================
+   BUTTONS
+   ============================================================ */
 .btn-primary {
   font-family: 'Teko', sans-serif;
   font-size: 1.1rem;
@@ -139,13 +146,8 @@ header {
   z-index: -1;
 }
 
-.btn-primary:hover {
-  color: var(--navy);
-}
-
-.btn-primary:hover::before {
-  transform: translateX(0);
-}
+.btn-primary:hover { color: var(--navy); }
+.btn-primary:hover::before { transform: translateX(0); }
 
 .btn-sm {
   font-family: 'IBM Plex Mono', monospace;
@@ -161,11 +163,78 @@ header {
 }
 
 .btn-sm:hover { background: var(--amber); color: var(--navy); }
-.btn-sm.danger { color: var(--red); border-color: #6e1e16; }
-.btn-sm.danger:hover { background: var(--red); color: white; }
+.btn-sm.danger  { color: var(--red);   border-color: #6e1e16; }
+.btn-sm.danger:hover  { background: var(--red); color: white; }
 .btn-sm.success { color: var(--green); border-color: #0e4a26; }
 .btn-sm.success:hover { background: var(--green); color: white; }
 
+/* ============================================================
+   UPGRADE #2 — RACE MODE TOGGLE (sliding pill switch)
+   ============================================================ */
+.race-mode-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.toggle-switch {
+  position: relative;
+  width: 52px;
+  height: 26px;
+  flex-shrink: 0;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+.toggle-slider {
+  position: absolute;
+  inset: 0;
+  background: var(--navy-light);
+  border: 1px solid var(--border);
+  border-radius: 26px;
+  cursor: pointer;
+  transition: background 0.25s, border-color 0.25s;
+}
+
+.toggle-slider::before {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  left: 3px;
+  top: 3px;
+  background: var(--text-dim);
+  border-radius: 50%;
+  transition: transform 0.25s, background 0.25s;
+}
+
+.toggle-switch input:checked + .toggle-slider {
+  background: rgba(13,138,122,0.25);
+  border-color: var(--teal-bright);
+}
+
+.toggle-switch input:checked + .toggle-slider::before {
+  transform: translateX(26px);
+  background: var(--teal-bright);
+}
+
+#race-mode-label          { min-width: 3.5rem; text-align: left; }
+#race-mode-label.on  { color: var(--teal-bright); }
+#race-mode-label.off { color: var(--text-dim); }
+
+/* ============================================================
+   MAIN GRID
+   ============================================================ */
 main {
   position: relative;
   z-index: 1;
@@ -174,10 +243,12 @@ main {
   padding: 1.5rem;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  grid-template-rows: auto;
   gap: 1.2rem;
 }
 
+/* ============================================================
+   CARDS
+   ============================================================ */
 .card {
   background: var(--navy-mid);
   border: 1px solid var(--border);
@@ -199,14 +270,15 @@ main {
 
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .card:nth-child(1) { animation-delay: 0.05s; }
-.card:nth-child(2) { animation-delay: 0.1s; }
+.card:nth-child(2) { animation-delay: 0.10s; }
 .card:nth-child(3) { animation-delay: 0.15s; grid-column: 1 / -1; }
-.card:nth-child(4) { animation-delay: 0.2s; }
+.card:nth-child(4) { animation-delay: 0.20s; }
 .card:nth-child(5) { animation-delay: 0.25s; }
+.card:nth-child(6) { animation-delay: 0.30s; }
 
 .card-label {
   font-family: 'IBM Plex Mono', monospace;
@@ -238,7 +310,9 @@ main {
   line-height: 1;
 }
 
-/* WIND CARD */
+/* ============================================================
+   WIND CARD
+   ============================================================ */
 .wind-layout {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -246,11 +320,7 @@ main {
   align-items: center;
 }
 
-.wind-data-row {
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-}
+.wind-data-row { display: flex; flex-direction: column; gap: 0.6rem; }
 
 .data-item label {
   font-family: 'IBM Plex Mono', monospace;
@@ -276,31 +346,17 @@ main {
   margin-left: 0.2rem;
 }
 
-.compass-wrap {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
+.compass-wrap { display: flex; justify-content: center; align-items: center; }
 
-.compass {
-  position: relative;
-  width: 110px;
-  height: 110px;
-}
+.compass { position: relative; width: 110px; height: 110px; }
 
 .compass-ring {
-  width: 110px;
-  height: 110px;
+  width: 110px; height: 110px;
   border-radius: 50%;
   border: 1px solid var(--border-bright);
   position: absolute;
   background: radial-gradient(circle, var(--navy-light) 0%, var(--navy) 100%);
   box-shadow: 0 0 20px rgba(13,138,122,0.2), inset 0 0 20px rgba(0,0,0,0.4);
-}
-
-.compass-ticks {
-  position: absolute;
-  inset: 0;
 }
 
 .compass-label {
@@ -311,16 +367,15 @@ main {
   color: var(--teal-bright);
 }
 
-.compass-label.n { top: 4px; left: 50%; transform: translateX(-50%); }
+.compass-label.n { top: 4px;    left: 50%; transform: translateX(-50%); }
 .compass-label.s { bottom: 4px; left: 50%; transform: translateX(-50%); }
-.compass-label.e { right: 4px; top: 50%; transform: translateY(-50%); }
-.compass-label.w { left: 4px; top: 50%; transform: translateY(-50%); }
+.compass-label.e { right: 4px;  top: 50%;  transform: translateY(-50%); }
+.compass-label.w { left: 4px;   top: 50%;  transform: translateY(-50%); }
 
 #windArrow {
   position: absolute;
   top: 50%; left: 50%;
-  width: 4px;
-  height: 50px;
+  width: 4px; height: 50px;
   background: linear-gradient(180deg, var(--amber) 0%, transparent 100%);
   transform-origin: 50% 90%;
   transform: translateX(-50%) translateY(-90%) rotate(0deg);
@@ -331,12 +386,10 @@ main {
 #windArrow::after {
   content: '';
   position: absolute;
-  top: 0;
-  left: 50%;
+  top: 0; left: 50%;
   transform: translateX(-50%);
-  width: 0;
-  height: 0;
-  border-left: 5px solid transparent;
+  width: 0; height: 0;
+  border-left:  5px solid transparent;
   border-right: 5px solid transparent;
   border-bottom: 10px solid var(--amber);
 }
@@ -361,7 +414,9 @@ main {
   text-align: center;
 }
 
-/* TELEMETRY CARD */
+/* ============================================================
+   TELEMETRY CARD
+   ============================================================ */
 .telemetry-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -403,16 +458,16 @@ main {
 }
 
 .tele-box.highlight .tele-val { color: var(--teal-bright); }
-.tele-box.highlight { border-color: var(--teal); }
+.tele-box.highlight            { border-color: var(--teal); }
 
 #map { height: 240px; border-radius: 1px; margin: 0.8rem 0; border: 1px solid var(--border); }
 
 .race-controls { display: flex; gap: 0.6rem; flex-wrap: wrap; }
 
-/* WEATHER TABLE */
-.weather-grid-full {
-  grid-column: 1 / -1;
-}
+/* ============================================================
+   WEATHER TABLE (full-width card)
+   ============================================================ */
+.weather-grid-full { grid-column: 1 / -1; }
 
 table {
   width: 100%;
@@ -421,9 +476,7 @@ table {
   font-size: 0.75rem;
 }
 
-thead tr {
-  border-bottom: 1px solid var(--border-bright);
-}
+thead tr { border-bottom: 1px solid var(--border-bright); }
 
 th {
   padding: 0.5rem 0.7rem;
@@ -443,9 +496,9 @@ td {
 
 tbody tr:hover { background: rgba(13,138,122,0.05); }
 
-.good { color: #1fba6a; font-weight: 500; }
+.good     { color: #1fba6a; font-weight: 500; }
 .moderate { color: var(--amber); font-weight: 500; }
-.bad { color: var(--red); font-weight: 500; }
+.bad      { color: var(--red);   font-weight: 500; }
 
 .practice-banner {
   margin-top: 0.8rem;
@@ -461,7 +514,18 @@ tbody tr:hover { background: rgba(13,138,122,0.05); }
   gap: 0.5rem;
 }
 
-/* TIDE */
+/* UPGRADE #1: Last-fetched timestamp line below weather table */
+#weather-last-fetch {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.6rem;
+  color: var(--text-dim);
+  letter-spacing: 0.1em;
+  margin-top: 0.5rem;
+}
+
+/* ============================================================
+   TIDE CARD
+   ============================================================ */
 .tide-split {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -495,12 +559,10 @@ tbody tr:hover { background: rgba(13,138,122,0.05); }
   line-height: 1;
 }
 
-/* TOOLS */
-.tools-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-}
+/* ============================================================
+   COXSWAIN TOOLS
+   ============================================================ */
+.tools-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 
 .tool-panel {
   background: var(--navy);
@@ -544,9 +606,11 @@ tbody tr:hover { background: rgba(13,138,122,0.05); }
 }
 
 .countdown-big.urgent { color: var(--red); }
-.countdown-big.go { color: #1fba6a; letter-spacing: 0.1em; }
+.countdown-big.go     { color: #1fba6a; letter-spacing: 0.1em; }
 
-input[type="text"], input[type="number"], input:not([type]) {
+input[type="text"],
+input[type="number"],
+input:not([type]) {
   font-family: 'IBM Plex Mono', monospace;
   font-size: 0.85rem;
   background: var(--navy);
@@ -561,21 +625,27 @@ input[type="text"], input[type="number"], input:not([type]) {
 
 input:focus { border-color: var(--teal-bright); }
 
-/* Responsive */
+/* ============================================================
+   RESPONSIVE — mobile-first breakpoint
+   ============================================================ */
 @media (max-width: 768px) {
-  main { grid-template-columns: 1fr; }
-  .card:nth-child(3) { grid-column: 1; }
-  .wind-layout { grid-template-columns: 1fr; }
-  .telemetry-grid { grid-template-columns: repeat(2, 1fr); }
-  .tools-grid { grid-template-columns: 1fr; }
-  header { flex-direction: column; align-items: flex-start; }
-  .header-right { align-items: flex-start; }
+  main                     { grid-template-columns: 1fr; }
+  .card:nth-child(3)       { grid-column: 1; }
+  .wind-layout             { grid-template-columns: 1fr; }
+  .telemetry-grid          { grid-template-columns: repeat(2, 1fr); }
+  .tools-grid              { grid-template-columns: 1fr; }
+  header                   { flex-direction: column; align-items: flex-start; }
+  .header-right            { align-items: flex-start; }
+  #device-status           { flex-direction: column; gap: 0.3rem; }
+  .race-mode-toggle        { flex-wrap: wrap; }
 }
 
-/* Blinking dot for live indicator */
+/* ============================================================
+   LIVE INDICATOR DOTS
+   ============================================================ */
 @keyframes blink {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.2; }
+  50%       { opacity: 0.2; }
 }
 
 .live-dot {
@@ -592,6 +662,9 @@ input:focus { border-color: var(--teal-bright); }
 </head>
 <body>
 
+<!-- ============================================================
+     HEADER
+     ============================================================ -->
 <header>
   <div class="header-title">
     <span class="org">Anacostia Community Boathouse</span>
@@ -599,19 +672,40 @@ input:focus { border-color: var(--teal-bright); }
   </div>
   <div class="header-right">
     <div id="device-status">
-      <span id="status-gps"><span class="live-dot inactive" id="dot-gps"></span>GPS: OFFLINE</span>
-      <span id="status-heading"><span class="live-dot inactive" id="dot-hdg"></span>HEADING: OFFLINE</span>
+      <span id="status-gps">
+        <span class="live-dot inactive"></span>GPS: OFFLINE
+      </span>
+      <span id="status-heading">
+        <span class="live-dot inactive"></span>HEADING: OFFLINE
+      </span>
+      <!-- UPGRADE #2: mode indicator in status bar -->
+      <span id="status-mode">
+        <span class="live-dot inactive"></span>MODE: TRAINING
+      </span>
     </div>
-    <button class="btn-primary" onclick="enableSensors()">Enable GPS & Heading</button>
+
+    <!-- UPGRADE #2: Race Mode sliding toggle -->
+    <div class="race-mode-toggle">
+      <span>Race Mode</span>
+      <label class="toggle-switch" title="ON = high-accuracy GPS + full pan; OFF = battery-save mode">
+        <input type="checkbox" id="race-mode-checkbox" onchange="onRaceModeToggle()">
+        <span class="toggle-slider"></span>
+      </label>
+      <span id="race-mode-label" class="off">OFF</span>
+    </div>
+
+    <button class="btn-primary" onclick="enableSensors()">Enable GPS &amp; Heading</button>
   </div>
 </header>
 
 <main>
 
-  <!-- WIND CARD -->
+  <!-- ====================================================
+       CARD 1 — WIND & HEADING
+       ==================================================== -->
   <div class="card">
     <div class="card-label">Live Sensors</div>
-    <h2>Wind & Heading</h2>
+    <h2>Wind &amp; Heading</h2>
     <div class="wind-layout">
       <div class="wind-data-row">
         <div class="data-item">
@@ -632,7 +726,7 @@ input:focus { border-color: var(--teal-bright); }
         <div class="compass">
           <div class="compass-ring"></div>
           <svg style="position:absolute;inset:0;" width="110" height="110">
-            <!-- Tick marks -->
+            <!-- SVG tick marks drawn by JS on init -->
             <g id="ticks"></g>
           </svg>
           <span class="compass-label n">N</span>
@@ -646,13 +740,16 @@ input:focus { border-color: var(--teal-bright); }
     </div>
   </div>
 
-  <!-- TELEMETRY CARD -->
+  <!-- ====================================================
+       CARD 2 — GPS RACE TELEMETRY
+       ==================================================== -->
   <div class="card">
     <div class="card-label">GPS Race Telemetry</div>
     <h2>Race Monitor</h2>
     <div class="telemetry-grid">
+      <!-- Instantaneous 500m split based on current speed -->
       <div class="tele-box">
-        <label>500m Split</label>
+        <label>Instant Split</label>
         <div class="tele-val" id="speed" style="font-size:1.5rem;">—</div>
         <div class="tele-unit">/500m</div>
       </div>
@@ -667,7 +764,7 @@ input:focus { border-color: var(--teal-bright); }
         <div class="tele-unit">seconds</div>
       </div>
       <div class="tele-box highlight">
-        <label>500m Split</label>
+        <label>Avg 500m Split</label>
         <div class="tele-val" id="split500" style="font-size:1.4rem;">—</div>
         <div class="tele-unit">/500m</div>
       </div>
@@ -677,17 +774,23 @@ input:focus { border-color: var(--teal-bright); }
         <div class="tele-unit">/500m</div>
       </div>
     </div>
+
     <div id="map"></div>
+
     <div class="race-controls">
       <button class="btn-sm success" onclick="startRace()">▶ Start Race</button>
-      <button class="btn-sm danger" onclick="stopRace()">■ Stop</button>
-      <button class="btn-sm" onclick="downloadData()">↓ Download CSV</button>
+      <button class="btn-sm danger"  onclick="stopRace()">■ Stop</button>
+      <!-- UPGRADE #4: triggers CSV + PNG map export -->
+      <button class="btn-sm"         onclick="downloadData()">↓ Download CSV + Map</button>
     </div>
   </div>
 
-  <!-- WEATHER TABLE - full width -->
+  <!-- ====================================================
+       CARD 3 — HOURLY WEATHER FORECAST (full-width)
+       ==================================================== -->
   <div class="card weather-grid-full">
-    <div class="card-label">Open-Meteo API</div>
+    <!-- UPGRADE #1: subtitle notes the 5-min throttle -->
+    <div class="card-label">Open-Meteo API · max 1 fetch per 5 min</div>
     <h2>Hourly Forecast — Next 12 Hours</h2>
     <table id="weather-table">
       <thead>
@@ -702,11 +805,17 @@ input:focus { border-color: var(--teal-bright); }
       <tbody></tbody>
     </table>
     <div class="practice-banner" id="practice-rating">
-      <span style="color:var(--text-dim);font-size:0.85rem;font-family:'IBM Plex Mono',monospace;">AWAITING LOCATION DATA…</span>
+      <span style="color:var(--text-dim);font-size:0.85rem;font-family:'IBM Plex Mono',monospace;">
+        AWAITING LOCATION DATA…
+      </span>
     </div>
+    <!-- UPGRADE #1: shows exactly when weather was last fetched -->
+    <div id="weather-last-fetch">WEATHER NOT YET FETCHED</div>
   </div>
 
-  <!-- TIDES -->
+  <!-- ====================================================
+       CARD 4 — TIDE PREDICTIONS
+       ==================================================== -->
   <div class="card">
     <div class="card-label">NOAA Station 8594900</div>
     <h2>Tide Predictions</h2>
@@ -722,29 +831,37 @@ input:focus { border-color: var(--teal-bright); }
     </div>
   </div>
 
-  <!-- TOOLS -->
+  <!-- ====================================================
+       CARD 5 — COXSWAIN TOOLS
+       ==================================================== -->
   <div class="card">
     <div class="card-label">Navigation &amp; Start</div>
     <h2>Coxswain Tools</h2>
     <div class="tools-grid">
+
       <div class="tool-panel">
         <h3>Bearing Lock</h3>
         <div class="bearing-display"><span id="locked">—</span>°</div>
         <div class="bearing-diff" id="bearing-diff">LOCKED HEADING</div>
         <button class="btn-sm" style="margin-top:0.7rem;" onclick="lockBearing()">⊕ Lock Current</button>
       </div>
+
       <div class="tool-panel" style="text-align:center;">
         <h3>Start Countdown</h3>
         <input id="countdown-input" placeholder="Seconds (e.g. 10)" type="number">
         <button class="btn-sm" style="margin-top:0.6rem;width:100%;" onclick="startCountdown()">▶ Start Timer</button>
         <div class="countdown-big" id="countdown-display"></div>
       </div>
+
     </div>
   </div>
-  <!-- SUNSET -->
+
+  <!-- ====================================================
+       CARD 6 — SUN & SKY (Sunrise / Sunset / Daylight)
+       ==================================================== -->
   <div class="card" style="animation-delay:0.3s;">
     <div class="card-label">Open-Meteo API</div>
-    <h2>Sun & Sky</h2>
+    <h2>Sun &amp; Sky</h2>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
       <div class="tele-box">
         <label>Sunrise</label>
@@ -758,321 +875,695 @@ input:focus { border-color: var(--teal-bright); }
       </div>
     </div>
     <div style="margin-top:1rem;background:var(--navy);border:1px solid var(--border);padding:0.8rem 1rem;">
-      <div style="font-family:'IBM Plex Mono',monospace;font-size:0.6rem;letter-spacing:0.18em;text-transform:uppercase;color:var(--text-dim);margin-bottom:0.4rem;">Light Remaining</div>
-      <div style="font-family:'Teko',sans-serif;font-size:1.8rem;color:var(--amber);" id="daylight-remaining">—</div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:0.6rem;letter-spacing:0.18em;
+                  text-transform:uppercase;color:var(--text-dim);margin-bottom:0.4rem;">
+        Light Remaining
+      </div>
+      <div id="daylight-remaining"
+           style="font-family:'Teko',sans-serif;font-size:1.8rem;color:var(--amber);">—</div>
     </div>
   </div>
 
+</main>
 
-
+<!-- ============================================================
+     JAVASCRIPT DEPENDENCIES
+     ============================================================ -->
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<!-- UPGRADE #4: html2canvas for map PNG export -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
 <script>
-let boatHeading = null, windDir = null, windSpeed = null;
-let lat = null, lon = null, lockedBearing = null;
-let raceActive = false, raceStartTime = null, lastPosition = null;
-let totalDistance = 0, raceData = [], timerInterval = null;
+/* ============================================================
+   GLOBAL STATE VARIABLES
+   ============================================================ */
+let boatHeading   = null;   // Current heading in degrees (from DeviceOrientation)
+let windDir       = null;   // Wind direction in degrees (from API)
+let windSpeed     = null;   // Wind speed in knots (from API)
+let lat           = null;   // Current GPS latitude
+let lon           = null;   // Current GPS longitude
+let lockedBearing = null;   // Reference bearing for bearing-lock feature
+
+// Race telemetry
+let raceActive    = false;
+let raceStartTime = null;
+let lastPosition  = null;
+let totalDistance = 0;
+let raceData      = [];     // Array of 500m interval records for CSV export
+let timerInterval = null;
+
+// Sensor state
 let headingSupported = false;
+
+// GPS watchPosition ID — stored so we can cancel and restart on mode change
+// UPGRADE #2
+let gpsWatchId = null;
+
+// UPGRADE #1: Timestamp (ms) of the last successful weather API fetch
+// Weather is only fetched again once WEATHER_THROTTLE_MS have elapsed.
+let lastWeatherFetch     = 0;
+const WEATHER_THROTTLE_MS = 5 * 60 * 1000; // 300 000 ms = 5 minutes
+
+// UPGRADE #2: True = Race Mode (high accuracy, full pan)
+//             False = Training Mode (battery-save, throttled pan)
+let raceModeActive = false;
+
+// UPGRADE #3: Counter incremented on every GPS fix, used to throttle map panning
+// in Training Mode.  Reset when race starts.
+let gpsUpdateCount = 0;
+
 const NOAA_STATION = "8594900";
 
-/* ===== Draw compass ticks ===== */
+/* ============================================================
+   COMPASS TICK MARKS — drawn once on page load (SVG)
+   ============================================================ */
 (function drawTicks(){
-  const g = document.getElementById('ticks');
-  const cx = 55, cy = 55, r1 = 50, r2 = 44;
-  for(let i=0;i<36;i++){
-    const a=(i*10-90)*Math.PI/180;
-    const major = i%9===0;
-    const r3 = major ? 38 : 42;
-    const x1=cx+r1*Math.cos(a), y1=cy+r1*Math.sin(a);
-    const x2=cx+r3*Math.cos(a), y2=cy+r3*Math.sin(a);
-    const line = document.createElementNS('http://www.w3.org/2000/svg','line');
-    line.setAttribute('x1',x1); line.setAttribute('y1',y1);
-    line.setAttribute('x2',x2); line.setAttribute('y2',y2);
-    line.setAttribute('stroke', major ? 'rgba(13,181,162,0.8)' : 'rgba(13,138,122,0.35)');
+  const g  = document.getElementById('ticks');
+  const cx = 55, cy = 55, r1 = 50;
+  for(let i = 0; i < 36; i++){
+    const angle = (i * 10 - 90) * Math.PI / 180;
+    const major = (i % 9 === 0);           // cardinal directions get longer ticks
+    const r3    = major ? 38 : 42;
+    const x1 = cx + r1 * Math.cos(angle), y1 = cy + r1 * Math.sin(angle);
+    const x2 = cx + r3 * Math.cos(angle), y2 = cy + r3 * Math.sin(angle);
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', x1); line.setAttribute('y1', y1);
+    line.setAttribute('x2', x2); line.setAttribute('y2', y2);
+    line.setAttribute('stroke',       major ? 'rgba(13,181,162,0.8)' : 'rgba(13,138,122,0.35)');
     line.setAttribute('stroke-width', major ? '1.5' : '0.8');
     g.appendChild(line);
   }
 })();
 
-/* ===== Device Status ===== */
+/* ============================================================
+   DEVICE STATUS BAR UPDATE
+   ============================================================ */
 function updateDeviceStatus(){
-  const gpsOk = lat!==null;
+  const gpsOk = (lat !== null);
   const hdgOk = headingSupported;
-  document.getElementById("status-gps").innerHTML = `<span class="live-dot${gpsOk?'':' inactive'}" id="dot-gps"></span>GPS: ${gpsOk?'ONLINE':'OFFLINE'}`;
-  document.getElementById("status-heading").innerHTML = `<span class="live-dot${hdgOk?'':' inactive'}" id="dot-hdg"></span>HEADING: ${hdgOk?'ONLINE':'OFFLINE'}`;
+
+  document.getElementById("status-gps").innerHTML =
+    `<span class="live-dot${gpsOk ? '' : ' inactive'}"></span>GPS: ${gpsOk ? 'ONLINE' : 'OFFLINE'}`;
+
+  document.getElementById("status-heading").innerHTML =
+    `<span class="live-dot${hdgOk ? '' : ' inactive'}"></span>HEADING: ${hdgOk ? 'ONLINE' : 'OFFLINE'}`;
+
+  // UPGRADE #2: Race Mode reflected in status bar
+  const modeEl = document.getElementById("status-mode");
+  if(raceModeActive){
+    modeEl.innerHTML    = `<span class="live-dot"></span>MODE: RACE`;
+    modeEl.style.color  = 'var(--teal-bright)';
+  } else {
+    modeEl.innerHTML    = `<span class="live-dot inactive"></span>MODE: TRAINING`;
+    modeEl.style.color  = 'var(--text-dim)';
+  }
 }
 
-/* ===== Map Setup ===== */
-let map = L.map('map', {zoomControl: false}).setView([38.88,-76.98],14);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'OSM'}).addTo(map);
-let path = L.polyline([], {color:'#12b5a2', weight:3}).addTo(map);
+/* ============================================================
+   MAP INITIALISATION (Leaflet)
+   ============================================================ */
+const map  = L.map('map', { zoomControl: false }).setView([38.88, -76.98], 14);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: 'OSM' }).addTo(map);
+// Polyline for route — always drawn completely regardless of pan throttle
+const path = L.polyline([], { color: '#12b5a2', weight: 3 }).addTo(map);
 
-/* ===== Sensor Enable ===== */
+/* ============================================================
+   UPGRADE #2 — RACE MODE TOGGLE HANDLER
+   Called when the user flips the toggle switch.
+   Dynamically reconfigures GPS accuracy without reloading.
+   ============================================================ */
+function onRaceModeToggle(){
+  raceModeActive = document.getElementById("race-mode-checkbox").checked;
+  const label    = document.getElementById("race-mode-label");
+
+  if(raceModeActive){
+    label.textContent = 'ON';
+    label.className   = 'on';
+  } else {
+    label.textContent = 'OFF';
+    label.className   = 'off';
+  }
+
+  updateDeviceStatus();
+
+  // If GPS is already active, cancel and restart with new accuracy settings
+  if(gpsWatchId !== null && navigator.geolocation){
+    navigator.geolocation.clearWatch(gpsWatchId);
+    gpsWatchId = null;
+    startGPSWatch();   // restarts with updated options for current mode
+  }
+}
+
+/* ============================================================
+   UPGRADE #2 — START / RESTART GPS WATCH
+   Called by enableSensors() and onRaceModeToggle().
+   GPS accuracy options differ by mode:
+     Race Mode    — enableHighAccuracy: true  (maximum precision)
+     Training Mode — enableHighAccuracy: false, maximumAge: 3000 (battery-save)
+   ============================================================ */
+function startGPSWatch(){
+  if(!navigator.geolocation) return;
+
+  // UPGRADE #2: choose GPS options based on current mode
+  const gpsOptions = raceModeActive
+    ? { enableHighAccuracy: true }
+    : { enableHighAccuracy: false, maximumAge: 3000 };
+
+  gpsWatchId = navigator.geolocation.watchPosition(
+    pos => {
+      lat = pos.coords.latitude;
+      lon = pos.coords.longitude;
+
+      // Use GPS-supplied heading if compass sensor is unavailable
+      if(headingSupported && pos.coords.heading !== null){
+        boatHeading = pos.coords.heading;
+      }
+
+      gpsUpdateCount++;            // UPGRADE #3: increment pan-throttle counter
+      updateSpeed(pos);            // update telemetry (and route + pan)
+      maybeUpdateWeather();        // UPGRADE #1: throttled weather refresh
+      updateDeviceStatus();
+    },
+    err => console.warn("GPS error:", err.message),
+    gpsOptions
+  );
+}
+
+/* ============================================================
+   SENSOR ENABLE (called once by the header button)
+   Requests permissions for DeviceOrientation then starts GPS.
+   ============================================================ */
 async function enableSensors(){
-  headingSupported=false;
-  if(typeof DeviceOrientationEvent !== "undefined" && typeof DeviceOrientationEvent.requestPermission === "function"){
-    try{ let r=await DeviceOrientationEvent.requestPermission(); if(r==="granted") headingSupported=true; }catch(e){ console.log("Heading unavailable"); }
-  } else if(window.DeviceOrientationEvent) headingSupported=true;
+  headingSupported = false;
+
+  // iOS 13+ requires an explicit permission request for DeviceOrientation
+  if(typeof DeviceOrientationEvent !== 'undefined' &&
+     typeof DeviceOrientationEvent.requestPermission === 'function'){
+    try {
+      const result = await DeviceOrientationEvent.requestPermission();
+      if(result === 'granted') headingSupported = true;
+    } catch(e){ console.warn("DeviceOrientation permission denied:", e); }
+  } else if(window.DeviceOrientationEvent){
+    // Android / desktop — no explicit permission required
+    headingSupported = true;
+  }
 
   if(headingSupported){
-    window.addEventListener("deviceorientationabsolute", e=>{
-      if(e.alpha!==null){ boatHeading=360-e.alpha; updateLive(); updateDeviceStatus(); }
+    window.addEventListener("deviceorientationabsolute", e => {
+      if(e.alpha !== null){
+        boatHeading = 360 - e.alpha;   // convert to standard compass bearing
+        updateLive();
+        updateDeviceStatus();
+      }
     });
   } else {
     alert("Heading sensor unavailable. Wind vector & bearing lock disabled.");
-    document.getElementById("windArrow").style.display="none";
-    document.getElementById("locked").innerText="N/A";
-    document.getElementById("bearing-diff").innerText="N/A";
+    document.getElementById("windArrow").style.display  = "none";
+    document.getElementById("locked").innerText          = "N/A";
+    document.getElementById("bearing-diff").innerText    = "N/A";
     updateDeviceStatus();
   }
 
+  // Start GPS (uses current raceModeActive flag for accuracy options)
   if(navigator.geolocation){
-    navigator.geolocation.watchPosition(pos=>{
-      lat=pos.coords.latitude; lon=pos.coords.longitude;
-      if(headingSupported && pos.coords.heading!==null) boatHeading=pos.coords.heading;
-      updateSpeed(pos); fetchWeatherCurrent(); updateDeviceStatus();
-    }, err=>console.log("GPS error:"+err.message),{enableHighAccuracy:true});
+    startGPSWatch();
   } else {
     alert("Geolocation unavailable. Race telemetry disabled.");
     updateDeviceStatus();
   }
 }
 
-/* ===== Live Wind ===== */
-function angleDiff(a,b){ let d=Math.abs(a-b)%360; return d>180?360-d:d; }
+/* ============================================================
+   ANGLE DIFFERENCE HELPER
+   Returns the shortest angular distance between two headings (0–180°).
+   ============================================================ */
+function angleDiff(a, b){
+  const d = Math.abs(a - b) % 360;
+  return d > 180 ? 360 - d : d;
+}
 
+/* ============================================================
+   LIVE WIND & HEADING DISPLAY UPDATE
+   ============================================================ */
 function updateLive(){
-  if(!headingSupported) return;
-  if(boatHeading===null) return;
-  document.getElementById("heading").innerText=boatHeading.toFixed(0);
+  if(!headingSupported || boatHeading === null) return;
 
-  if(windDir!==null && windSpeed!==null){
-    document.getElementById("winddir").innerText=windDir.toFixed(0);
-    document.getElementById("windspeed").innerText=windSpeed.toFixed(1);
-    const rel=(windDir-boatHeading+360)%360;
-    // Rotate arrow: rel=0 means wind from front (headwind)
-    const arrow = document.getElementById("windArrow");
-    arrow.style.transform=`translateX(-50%) translateY(-90%) rotate(${rel}deg)`;
-    let diff=angleDiff(boatHeading, windDir);
-    let impact=diff<45?"HEADWIND":diff>135?"TAILWIND":rel<180?"STARBOARD CROSS":"PORT CROSS";
-    document.getElementById("impact-badge").innerText=impact+" ("+diff.toFixed(0)+"°)";
+  document.getElementById("heading").innerText = boatHeading.toFixed(0);
+
+  if(windDir !== null && windSpeed !== null){
+    document.getElementById("winddir").innerText   = windDir.toFixed(0);
+    document.getElementById("windspeed").innerText = windSpeed.toFixed(1);
+
+    // Relative wind angle from boat's perspective
+    const rel = (windDir - boatHeading + 360) % 360;
+    document.getElementById("windArrow").style.transform =
+      `translateX(-50%) translateY(-90%) rotate(${rel}deg)`;
+
+    const diff   = angleDiff(boatHeading, windDir);
+    const impact = diff < 45   ? "HEADWIND"
+                 : diff > 135  ? "TAILWIND"
+                 : rel  < 180  ? "STARBOARD CROSS"
+                               : "PORT CROSS";
+    document.getElementById("impact-badge").innerText = `${impact} (${diff.toFixed(0)}°)`;
   }
+
   updateBearing();
 }
 
-/* ===== Weather ===== */
-async function fetchWeatherCurrent(){
-  if(lat===null) return;
-  try {
-    const url=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&windspeed_unit=kn`;
-    const res=await fetch(url); const data=await res.json();
-    windDir=data.current_weather.winddirection;
-    windSpeed=data.current_weather.windspeed; // now in knots
-    updateLive(); fetchHourly(); fetchSunset();
-  } catch(e){ console.log("Weather fetch error",e); }
+/* ============================================================
+   UPGRADE #1 — WEATHER THROTTLE GUARD
+   Called on every GPS fix.  Only triggers an actual API fetch
+   if at least WEATHER_THROTTLE_MS (5 minutes) have elapsed since
+   the previous successful fetch.  This eliminates the previous
+   behaviour of calling the API on every single GPS update event.
+   ============================================================ */
+function maybeUpdateWeather(){
+  const now = Date.now();
+  if(now - lastWeatherFetch >= WEATHER_THROTTLE_MS){
+    lastWeatherFetch = now;      // record fetch time before async call
+    fetchWeatherCurrent();
+  }
 }
 
-async function fetchHourly(){
-  const url=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,wind_speed_10m,wind_direction_10m&temperature_unit=fahrenheit&windspeed_unit=kn&forecast_days=1&timezone=auto`;
+/* ============================================================
+   WEATHER — CURRENT CONDITIONS (wind direction & speed in knots)
+   ============================================================ */
+async function fetchWeatherCurrent(){
+  if(lat === null) return;
   try {
-    const res=await fetch(url); const data=await res.json();
-    const tbody=document.querySelector("#weather-table tbody"); tbody.innerHTML="";
-    const now=new Date(); let count=0, worst=0;
-    data.hourly.time.forEach((t,i)=>{
-      const time=new Date(t);
-      if(time>=now && count<12){
-        const temp=data.hourly.temperature_2m[i];
-        const wind=data.hourly.wind_speed_10m[i]; // knots
-        const dir=data.hourly.wind_direction_10m[i];
-        if(wind>worst) worst=wind;
-        // thresholds in knots: ~10 kts = moderate, ~16 kts = poor
-        let rating="GOOD", cls="good";
-        if(wind>10){rating="MODERATE";cls="moderate";}
-        if(wind>16){rating="POOR";cls="bad";}
-        tbody.innerHTML+=`<tr>
-          <td>${time.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</td>
-          <td>${temp}°</td>
-          <td>${wind.toFixed(1)}</td>
-          <td>${dir}°</td>
-          <td class="${cls}">${rating}</td>
-        </tr>`;
+    const url  = `https://api.open-meteo.com/v1/forecast`
+               + `?latitude=${lat}&longitude=${lon}`
+               + `&current_weather=true&windspeed_unit=kn`;
+    const res  = await fetch(url);
+    const data = await res.json();
+
+    windDir   = data.current_weather.winddirection;
+    windSpeed = data.current_weather.windspeed;  // knots
+    updateLive();
+    fetchHourly();    // refresh forecast table
+    fetchSunset();    // refresh sunrise/sunset data
+
+    // UPGRADE #1: Show exactly when weather was last fetched
+    const ts = new Date().toLocaleTimeString([], {
+      hour: '2-digit', minute: '2-digit', second: '2-digit'
+    });
+    document.getElementById("weather-last-fetch").innerText =
+      `LAST FETCHED: ${ts}  ·  AUTO-REFRESH EVERY 5 MIN`;
+
+  } catch(e){ console.warn("Weather fetch error:", e); }
+}
+
+/* ============================================================
+   WEATHER — 12-HOUR HOURLY FORECAST TABLE
+   Units: temperature in °F, wind in knots
+   ============================================================ */
+async function fetchHourly(){
+  try {
+    const url  = `https://api.open-meteo.com/v1/forecast`
+               + `?latitude=${lat}&longitude=${lon}`
+               + `&hourly=temperature_2m,wind_speed_10m,wind_direction_10m`
+               + `&temperature_unit=fahrenheit&windspeed_unit=kn`
+               + `&forecast_days=1&timezone=auto`;
+    const res  = await fetch(url);
+    const data = await res.json();
+
+    const tbody = document.querySelector("#weather-table tbody");
+    tbody.innerHTML = "";
+    const now = new Date();
+    let count = 0, worst = 0;
+
+    data.hourly.time.forEach((t, i) => {
+      const time = new Date(t);
+      if(time >= now && count < 12){
+        const temp = data.hourly.temperature_2m[i];
+        const wind = data.hourly.wind_speed_10m[i];    // knots
+        const dir  = data.hourly.wind_direction_10m[i];
+        if(wind > worst) worst = wind;
+
+        // Thresholds in knots: 10 kts = moderate, 16 kts = poor for rowing
+        let rating = "GOOD",     cls = "good";
+        if(wind > 10){ rating = "MODERATE"; cls = "moderate"; }
+        if(wind > 16){ rating = "POOR";     cls = "bad"; }
+
+        tbody.innerHTML +=
+          `<tr>
+            <td>${time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+            <td>${temp}°</td>
+            <td>${wind.toFixed(1)}</td>
+            <td>${dir}°</td>
+            <td class="${cls}">${rating}</td>
+          </tr>`;
         count++;
       }
     });
+
+    // Practice recommendation banner below table
     const pr = document.getElementById("practice-rating");
-    if(worst>16) pr.innerHTML=`<span class="bad">⚠ LIKELY CANCEL — Winds Exceed Safe Limit</span>`;
-    else if(worst>10) pr.innerHTML=`<span class="moderate">△ EXPERIENCED CREWS ONLY — Elevated Wind</span>`;
-    else pr.innerHTML=`<span class="good">✓ FULL PRACTICE RECOMMENDED</span>`;
-  } catch(e){ console.log("Hourly fetch error",e); }
+    if(worst > 16){
+      pr.innerHTML = `<span class="bad">⚠ LIKELY CANCEL — Winds Exceed Safe Limit</span>`;
+    } else if(worst > 10){
+      pr.innerHTML = `<span class="moderate">△ EXPERIENCED CREWS ONLY — Elevated Wind</span>`;
+    } else {
+      pr.innerHTML = `<span class="good">✓ FULL PRACTICE RECOMMENDED</span>`;
+    }
+  } catch(e){ console.warn("Hourly forecast error:", e); }
 }
 
-/* ===== Sunset ===== */
+/* ============================================================
+   SUNSET / SUNRISE
+   Fetched once per weather cycle (triggered by fetchWeatherCurrent).
+   The visible countdown refreshes every minute via setInterval.
+   ============================================================ */
 async function fetchSunset(){
-  if(lat===null) return;
+  if(lat === null) return;
   try {
-    const url=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=sunrise,sunset&timezone=auto&forecast_days=1`;
-    const res=await fetch(url); const data=await res.json();
-    const sunrise=new Date(data.daily.sunrise[0]);
-    const sunset=new Date(data.daily.sunset[0]);
-    document.getElementById("sunrise-time").innerText=sunrise.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-    document.getElementById("sunset-time").innerText=sunset.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-    // Update daylight remaining every minute
+    const url  = `https://api.open-meteo.com/v1/forecast`
+               + `?latitude=${lat}&longitude=${lon}`
+               + `&daily=sunrise,sunset&timezone=auto&forecast_days=1`;
+    const res  = await fetch(url);
+    const data = await res.json();
+
+    const sunrise = new Date(data.daily.sunrise[0]);
+    const sunset  = new Date(data.daily.sunset[0]);
+
+    document.getElementById("sunrise-time").innerText =
+      sunrise.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    document.getElementById("sunset-time").innerText  =
+      sunset.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    // Countdown that updates once per minute
     function updateRemaining(){
-      const now=new Date();
-      const diffMs=sunset-now;
-      if(diffMs<=0){ document.getElementById("daylight-remaining").innerText="SUN HAS SET"; return; }
-      const h=Math.floor(diffMs/3600000);
-      const m=Math.floor((diffMs%3600000)/60000);
-      document.getElementById("daylight-remaining").innerText=`${h}h ${m}m until sunset`;
+      const now    = new Date();
+      const diffMs = sunset - now;
+      const el     = document.getElementById("daylight-remaining");
+      if(diffMs <= 0){
+        el.innerText = "SUN HAS SET";
+        return;
+      }
+      const h = Math.floor(diffMs / 3600000);
+      const m = Math.floor((diffMs % 3600000) / 60000);
+      el.innerText = `${h}h ${m}m until sunset`;
     }
     updateRemaining();
     setInterval(updateRemaining, 60000);
-  } catch(e){ console.log("Sunset fetch error",e); }
+
+  } catch(e){ console.warn("Sunset fetch error:", e); }
 }
 
-
+/* ============================================================
+   TIDES — NOAA High/Low predictions for today
+   Fetched once on page load; tide times don't change.
+   ============================================================ */
 async function fetchTides(){
-  const today=new Date(); const dateStr=today.toISOString().slice(0,10).replaceAll("-","");
-  const url=`https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=predictions&begin_date=${dateStr}&end_date=${dateStr}&datum=MLLW&station=${NOAA_STATION}&time_zone=lst_ldt&units=english&interval=hilo&format=json`;
+  const today   = new Date();
+  const dateStr = today.toISOString().slice(0, 10).replaceAll("-", "");
+  const url = `https://api.tidesandcurrents.noaa.gov/api/prod/datagetter`
+            + `?product=predictions&begin_date=${dateStr}&end_date=${dateStr}`
+            + `&datum=MLLW&station=${NOAA_STATION}&time_zone=lst_ldt`
+            + `&units=english&interval=hilo&format=json`;
   try {
-    const res=await fetch(url); const data=await res.json();
-    const tbody=document.querySelector("#tide-table tbody"); tbody.innerHTML=""; let heights=[];
-    data.predictions.forEach(e=>{
-      tbody.innerHTML+=`<tr>
-        <td style="color:${e.type==='H'?'var(--teal-bright)':'var(--text-dim)'}">${e.type==="H"?"↑ HIGH":"↓ LOW"}</td>
-        <td>${new Date(e.t).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</td>
-        <td>${e.v}</td>
-      </tr>`;
+    const res  = await fetch(url);
+    const data = await res.json();
+    const tbody   = document.querySelector("#tide-table tbody");
+    tbody.innerHTML = "";
+    const heights = [];
+
+    data.predictions.forEach(e => {
+      tbody.innerHTML +=
+        `<tr>
+          <td style="color:${e.type === 'H' ? 'var(--teal-bright)' : 'var(--text-dim)'}">
+            ${e.type === "H" ? "↑ HIGH" : "↓ LOW"}
+          </td>
+          <td>${new Date(e.t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+          <td>${e.v}</td>
+        </tr>`;
       heights.push(parseFloat(e.v));
     });
-    if(heights.length>=2){
-      const diff=Math.max(...heights)-Math.min(...heights);
-      const label = diff>3?"STRONG":diff>1.5?"MODERATE":"LIGHT";
-      document.getElementById("current-estimate").innerText=label;
-      document.getElementById("current-estimate").style.color=diff>3?"var(--red)":diff>1.5?"var(--amber)":"var(--green)";
+
+    if(heights.length >= 2){
+      const diff  = Math.max(...heights) - Math.min(...heights);
+      const label = diff > 3 ? "STRONG" : diff > 1.5 ? "MODERATE" : "LIGHT";
+      const el    = document.getElementById("current-estimate");
+      el.innerText   = label;
+      el.style.color = diff > 3 ? "var(--red)" : diff > 1.5 ? "var(--amber)" : "var(--green)";
     }
-  } catch(e){ console.log("Tide fetch error",e); }
-}
-fetchTides();
-// Pre-load sunset for default ACB location
-lat=38.88; lon=-76.98; fetchSunset(); lat=null; lon=null;
-
-/* ===== Race Telemetry ===== */
-function haversine(lat1,lon1,lat2,lon2){
-  const R=6371000, toRad=x=>x*Math.PI/180;
-  const dLat=toRad(lat2-lat1), dLon=toRad(lon2-lon1);
-  const a=Math.sin(dLat/2)**2+Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
-  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+  } catch(e){ console.warn("Tide fetch error:", e); }
 }
 
+/* ============================================================
+   HAVERSINE DISTANCE
+   Returns distance in metres between two GPS coordinates.
+   ============================================================ */
+function haversine(lat1, lon1, lat2, lon2){
+  const R     = 6371000;
+  const toRad = x => x * Math.PI / 180;
+  const dLat  = toRad(lat2 - lat1);
+  const dLon  = toRad(lon2 - lon1);
+  const a     = Math.sin(dLat / 2) ** 2
+              + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+/* ============================================================
+   RACE CONTROLS — start, stop
+   ============================================================ */
 function startRace(){
-  raceActive=true; raceStartTime=Date.now();
-  totalDistance=0; lastPosition=null; raceData=[];
-  path.setLatLngs([]);
-  timerInterval=setInterval(()=>document.getElementById("race-time").innerText=Math.floor((Date.now()-raceStartTime)/1000),1000);
+  raceActive     = true;
+  raceStartTime  = Date.now();
+  totalDistance  = 0;
+  lastPosition   = null;
+  raceData       = [];
+  gpsUpdateCount = 0;          // UPGRADE #3: reset pan counter at race start
+  path.setLatLngs([]);         // clear previous route on map
+  timerInterval = setInterval(() => {
+    document.getElementById("race-time").innerText =
+      Math.floor((Date.now() - raceStartTime) / 1000);
+  }, 1000);
 }
 
-function stopRace(){ raceActive=false; clearInterval(timerInterval); }
+function stopRace(){
+  raceActive = false;
+  clearInterval(timerInterval);
+}
 
+/* ============================================================
+   GPS POSITION UPDATE — core telemetry handler
+   Called on every GPS fix during watchPosition.
+
+   UPGRADE #2: whether to pan the map depends on raceModeActive.
+   UPGRADE #3: in Training Mode, map pans every 3rd GPS fix only.
+               The polyline is always updated on every fix (accurate route).
+   ============================================================ */
 function updateSpeed(pos){
-  const speedMs=pos.coords.speed?pos.coords.speed:0;
+  const speedMs = pos.coords.speed ? pos.coords.speed : 0;
 
-  // Display current split time (time to row 500m at current speed)
-  if(speedMs>0){
-    const splitSec=500/speedMs;
-    const m=Math.floor(splitSec/60), s=Math.floor(splitSec%60);
-    document.getElementById("speed").innerText=`${m}:${String(s).padStart(2,'0')}`;
+  // --- Instantaneous 500m split at current speed ---
+  if(speedMs > 0){
+    const splitSec = 500 / speedMs;
+    const m = Math.floor(splitSec / 60);
+    const s = Math.floor(splitSec % 60);
+    document.getElementById("speed").innerText = `${m}:${String(s).padStart(2, '0')}`;
   } else {
-    document.getElementById("speed").innerText="—";
+    document.getElementById("speed").innerText = "—";
   }
 
   if(raceActive){
-    const _lat=pos.coords.latitude, _lon=pos.coords.longitude;
+    const _lat = pos.coords.latitude;
+    const _lon = pos.coords.longitude;
+
     if(lastPosition){
-      const d=haversine(lastPosition.lat,lastPosition.lon,_lat,_lon);
-      const prevTotal=totalDistance;
-      totalDistance+=d;
-      document.getElementById("distance").innerText=totalDistance.toFixed(1);
+      // Accumulate distance
+      const d         = haversine(lastPosition.lat, lastPosition.lon, _lat, _lon);
+      const prevTotal = totalDistance;
+      totalDistance  += d;
+      document.getElementById("distance").innerText = totalDistance.toFixed(1);
 
-      // Rolling average 500m split
-      if(totalDistance>0){
-        const splitSec=(Date.now()-raceStartTime)/1000/(totalDistance/500);
-        const m=Math.floor(splitSec/60), s=Math.floor(splitSec%60);
-        document.getElementById("split500").innerText=`${m}:${String(s).padStart(2,'0')}`;
+      // Rolling average 500m split across the whole race
+      if(totalDistance > 0){
+        const splitSec = (Date.now() - raceStartTime) / 1000 / (totalDistance / 500);
+        const m = Math.floor(splitSec / 60);
+        const s = Math.floor(splitSec % 60);
+        document.getElementById("split500").innerText = `${m}:${String(s).padStart(2, '0')}`;
       }
 
-      // Estimated next 500m split based on current speed
-      if(speedMs>0){
-        const remainingMeters=500-(totalDistance%500);
-        const estSec=remainingMeters/speedMs;
-        const m2=Math.floor(estSec/60), s2=Math.floor(estSec%60);
-        document.getElementById("nextSplit").innerText=`${m2}:${String(s2).padStart(2,'0')}`;
+      // Projected time for the remainder of the current 500m segment
+      if(speedMs > 0){
+        const remainingMeters = 500 - (totalDistance % 500);
+        const estSec          = remainingMeters / speedMs;
+        const m2 = Math.floor(estSec / 60);
+        const s2 = Math.floor(estSec % 60);
+        document.getElementById("nextSplit").innerText = `${m2}:${String(s2).padStart(2, '0')}`;
       }
 
-      // Record a CSV row every time we cross a 500m boundary
-      const prevInterval=Math.floor(prevTotal/500);
-      const currInterval=Math.floor(totalDistance/500);
-      if(currInterval>prevInterval && totalDistance>0){
-        const elapsedSec=(Date.now()-raceStartTime)/1000;
-        const avgSplitSec=elapsedSec/(totalDistance/500);
-        const am=Math.floor(avgSplitSec/60), as2=Math.floor(avgSplitSec%60);
+      // CSV: Record one data row every time we cross a 500m boundary
+      const prevInterval = Math.floor(prevTotal      / 500);
+      const currInterval = Math.floor(totalDistance  / 500);
+      if(currInterval > prevInterval && totalDistance > 0){
+        const elapsedSec  = (Date.now() - raceStartTime) / 1000;
+        const avgSplitSec = elapsedSec / (totalDistance / 500);
+        const am  = Math.floor(avgSplitSec / 60);
+        const as2 = Math.floor(avgSplitSec % 60);
         raceData.push({
-          interval: currInterval,
+          interval:   currInterval,
           distance_m: totalDistance,
-          elapsed_s: elapsedSec,
-          lat:_lat, lon:_lon,
-          avg_split:`${am}:${String(as2).padStart(2,'0')}`,
-          speed_ms: speedMs
+          elapsed_s:  elapsedSec,
+          lat:        _lat,
+          lon:        _lon,
+          avg_split:  `${am}:${String(as2).padStart(2, '0')}`,
+          speed_ms:   speedMs
         });
       }
     }
-    lastPosition={lat:_lat,lon:_lon};
-    path.addLatLng([_lat,_lon]);
-    map.panTo([_lat,_lon],{animate:true});
+
+    // Always add to polyline so the route drawing is complete and accurate
+    path.addLatLng([_lat, _lon]);
+
+    // UPGRADE #2 & #3: Pan behaviour
+    //   Race Mode    → pan on every GPS fix
+    //   Training Mode → pan only every 3rd GPS fix (saves CPU / battery)
+    const shouldPan = raceModeActive
+      ? true
+      : (gpsUpdateCount % 3 === 0);
+
+    if(shouldPan){
+      map.panTo([_lat, _lon], { animate: true });
+    }
+
+    lastPosition = { lat: _lat, lon: _lon };
   }
 }
 
-/* ===== CSV Download ===== */
+/* ============================================================
+   UPGRADE #4 — DOWNLOAD RACE DATA
+   Exports two files automatically:
+     1. race-data.csv  — 500m interval splits (existing behaviour preserved)
+     2. race-map.png   — PNG screenshot of the Leaflet map showing the route
+
+   Map export steps:
+     a. fitBounds() to show the entire route with padding
+     b. Wait 600 ms for Leaflet to finish rendering tiles
+     c. Capture the map DOM element with html2canvas (CORS-enabled)
+     d. Convert canvas to Blob and trigger download
+   ============================================================ */
 function downloadData(){
-  let csv="interval_500m,distance_m,elapsed_s,avg_split_per_500m,lat,lon,speed_ms\n";
-  raceData.forEach(r=>csv+=`${r.interval},${r.distance_m.toFixed(1)},${r.elapsed_s.toFixed(1)},${r.avg_split},${r.lat},${r.lon},${r.speed_ms.toFixed(2)}\n`);
-  const blob=new Blob([csv],{type:"text/csv"});
-  const url=URL.createObjectURL(blob); const a=document.createElement("a");
-  a.href=url; a.download="race_data_500m.csv"; a.click();
+
+  /* ---- Part A: CSV of 500m split intervals (unchanged) ---- */
+  let csv = "interval_500m,distance_m,elapsed_s,avg_split_per_500m,lat,lon,speed_ms\n";
+  raceData.forEach(r => {
+    csv += `${r.interval},`
+         + `${r.distance_m.toFixed(1)},`
+         + `${r.elapsed_s.toFixed(1)},`
+         + `${r.avg_split},`
+         + `${r.lat},`
+         + `${r.lon},`
+         + `${r.speed_ms.toFixed(2)}\n`;
+  });
+
+  const csvBlob = new Blob([csv], { type: "text/csv" });
+  const csvUrl  = URL.createObjectURL(csvBlob);
+  const csvLink = document.createElement("a");
+  csvLink.href     = csvUrl;
+  csvLink.download = "race-data.csv";
+  csvLink.click();
+  // Clean up object URL after a short delay
+  setTimeout(() => URL.revokeObjectURL(csvUrl), 2000);
+
+  /* ---- Part B: PNG screenshot of the GPS route map ---- */
+  const routePoints = path.getLatLngs();
+
+  // If there are at least 2 points, zoom the map to fit the whole route
+  if(routePoints.length > 1){
+    map.fitBounds(path.getBounds(), { padding: [20, 20], animate: false });
+  }
+
+  // Short delay ensures Leaflet tiles have finished rendering at the new view
+  setTimeout(() => {
+    const mapEl = document.getElementById("map");
+
+    html2canvas(mapEl, {
+      useCORS:         true,          // allow OSM tile images via CORS
+      allowTaint:      true,          // graceful fallback if CORS headers absent
+      backgroundColor: "#08111e",     // match dashboard dark background
+      logging:         false          // suppress console noise
+    })
+    .then(canvas => {
+      canvas.toBlob(blob => {
+        if(!blob){ console.warn("Map canvas export failed — no blob produced"); return; }
+        const pngUrl  = URL.createObjectURL(blob);
+        const pngLink = document.createElement("a");
+        pngLink.href     = pngUrl;
+        pngLink.download = "race-map.png";
+        pngLink.click();
+        setTimeout(() => URL.revokeObjectURL(pngUrl), 2000);
+      }, "image/png");
+    })
+    .catch(err => console.warn("html2canvas error:", err));
+
+  }, 600);   // 600 ms render buffer
 }
 
-/* ===== Bearing Lock ===== */
+/* ============================================================
+   BEARING LOCK
+   Locks the current heading as a reference, then continuously
+   reports angular deviation and correction direction.
+   ============================================================ */
 function lockBearing(){
-  if(!headingSupported||boatHeading===null) return;
-  lockedBearing=boatHeading;
-  document.getElementById("locked").innerText=lockedBearing.toFixed(0);
+  if(!headingSupported || boatHeading === null) return;
+  lockedBearing = boatHeading;
+  document.getElementById("locked").innerText = lockedBearing.toFixed(0);
 }
 
 function updateBearing(){
-  if(!headingSupported||lockedBearing===null||boatHeading===null) return;
-  let diff=angleDiff(boatHeading,lockedBearing);
-  const dir = ((boatHeading - lockedBearing + 360)%360) < 180 ? "▶ R" : "◀ L";
-  document.getElementById("bearing-diff").innerText=diff<1?"ON COURSE":diff.toFixed(1)+"° OFF — CORRECT "+dir;
-  document.getElementById("bearing-diff").style.color=diff<2?"var(--green)":diff<10?"var(--amber)":"var(--red)";
+  if(!headingSupported || lockedBearing === null || boatHeading === null) return;
+  const diff = angleDiff(boatHeading, lockedBearing);
+  const dir  = ((boatHeading - lockedBearing + 360) % 360) < 180 ? "▶ R" : "◀ L";
+  const el   = document.getElementById("bearing-diff");
+  el.innerText   = diff < 1 ? "ON COURSE" : `${diff.toFixed(1)}° OFF — CORRECT ${dir}`;
+  el.style.color = diff < 2  ? "var(--green)"
+                 : diff < 10 ? "var(--amber)"
+                             : "var(--red)";
 }
 
-/* ===== Countdown ===== */
+/* ============================================================
+   COUNTDOWN TIMER
+   Colours: white → red (≤5 s) → green ("GO!")
+   ============================================================ */
 function startCountdown(){
-  let sec=parseInt(document.getElementById("countdown-input").value);
-  if(isNaN(sec)||sec<=0) return;
-  const display=document.getElementById("countdown-display");
-  display.className="countdown-big";
-  display.innerText=sec;
-  const interval=setInterval(()=>{
+  let sec = parseInt(document.getElementById("countdown-input").value);
+  if(isNaN(sec) || sec <= 0) return;
+
+  const display    = document.getElementById("countdown-display");
+  display.className = "countdown-big";
+  display.innerText  = sec;
+
+  const interval = setInterval(() => {
     sec--;
-    display.innerText=sec;
-    if(sec<=5 && sec>0) display.className="countdown-big urgent";
-    if(sec<=0){
+    display.innerText = sec;
+    if(sec <= 5 && sec > 0) display.className = "countdown-big urgent";
+    if(sec <= 0){
       clearInterval(interval);
-      display.innerText="GO!";
-      display.className="countdown-big go";
+      display.innerText  = "GO!";
+      display.className  = "countdown-big go";
     }
-  },1000);
+  }, 1000);
 }
+
+/* ============================================================
+   ON-LOAD INITIALISATION
+   —  fetchTides()   : fetched immediately; doesn't need GPS
+   —  fetchSunset()  : pre-fetched with default ACB coordinates so the
+                       Sun & Sky card is populated before the user taps
+                       "Enable GPS & Heading"
+   —  Weather fetch  : deferred until GPS fix is available; the throttle
+                       guard (maybeUpdateWeather) handles it automatically
+   ============================================================ */
+fetchTides();
+
+// Temporarily use default ACB coordinates for initial sunset estimate
+lat = 38.88; lon = -76.98;
+fetchSunset();
+lat = null; lon = null;
+
 </script>
 </body>
 </html>
