@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ACB Full Race Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body { font-family: Georgia, serif; margin:0; background:#eef2f5;}
+header { background:#0f2c44; color:white; text-align:center; padding:1.5rem;}
+main { max-width:1200px; margin:auto; padding:2rem;}
+.card { background:white; padding:1.5rem; margin-bottom:2rem; border-radius:10px;
+box-shadow:0 3px 10px rgba(0,0,0,0.1);}
+h2 { border-bottom:2px solid #ddd; padding-bottom:.5rem;}
+table { width:100%; border-collapse:collapse;}
+th, td { padding:.5rem; text-align:center; border-bottom:1px solid #ddd;}
+th { background:#f4f4f4;}
+.good{color:green;font-weight:bold;}
+.moderate{color:orange;font-weight:bold;}
+.bad{color:red;font-weight:bold;}
+.vector { font-size:3rem; text-align:center;}
+button { padding:.5rem 1rem; margin-top:.5rem; background:#0f2c44; color:white; border:none;}
+button:hover{background:#163c5c;}
+input{padding:.4rem;margin-top:.4rem;width:100%;}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem;}
+</style>
+</head>
+
+<body>
+
+<header>
+<h1>Anacostia Community Boathouse Command Dashboard</h1>
+<button onclick="enableSensors()">Enable GPS & Heading</button>
+</header>
+
+<main>
+
+<div class="card">
+<h2>Live Wind Relative to Boat</h2>
+<p><strong>Heading:</strong> <span id="heading">—</span>°</p>
+<p><strong>Wind:</strong> <span id="winddir">—</span>° @ <span id="windspeed">—</span> mph</p>
+<div class="vector" id="windVector">↑</div>
+<p id="impact"></p>
+</div>
+
+<div class="card">
+<h2>GPS Race Telemetry</h2>
+<p><strong>Speed:</strong> <span id="speed">—</span> mph</p>
+<p><strong>Distance:</strong> <span id="distance">0</span> m</p>
+<p><strong>Elapsed Time:</strong> <span id="race-time">0</span> s</p>
+<p><strong>500m Split:</strong> <span id="split500">—</span></p>
+<button onclick="startRace()">Start Race</button>
+<button onclick="stopRace()">Stop Race</button>
+<button onclick="downloadData()">Download Race Data</button>
+</div>
+
+<div class="card">
+<h2>Hourly Forecast (Next 12h)</h2>
+<table id="weather-table">
+<thead>
+<tr><th>Time</th><th>Temp</th><th>Wind</th><th>Dir</th><th>Rating</th></tr>
+</thead>
+<tbody></tbody>
+</table>
+<p><strong>Practice Recommendation:</strong> <span id="practice-rating"></span></p>
+</div>
+
+<div class="card">
+<h2>High & Low Tides</h2>
+<table id="tide-table">
+<thead><tr><th>Type</th><th>Time</th><th>Height (ft)</th></tr></thead>
+<tbody></tbody>
+</table>
+<p><strong>Estimated Current Strength:</strong> <span id="current-estimate"></span></p>
+</div>
+
+<div class="card">
+<h2>Coxswain Tools</h2>
+<div class="grid">
+
+<div>
+<h3>Bearing Lock</h3>
+<button onclick="lockBearing()">Lock Current Heading</button>
+<p>Locked: <span id="locked">—</span></p>
+<p id="bearing-diff"></p>
+</div>
+
+<div>
+<h3>Start Countdown</h3>
+<input id="countdown-input" placeholder="Seconds">
+<button onclick="startCountdown()">Start</button>
+<p id="countdown-display"></p>
+</div>
+
+</div>
+</div>
+
+</main>
+
+<script>
+
+const NOAA_STATION="8594900";
+
+let boatHeading=null, windDir=null, windSpeed=null;
+let lat=null, lon=null, lockedBearing=null;
+
+let raceActive=false, raceStartTime=null, lastPosition=null;
+let totalDistance=0, raceData=[], timerInterval=null;
+
+/* ========== SENSORS ========== */
+
+async function enableSensors(){
+if(typeof DeviceOrientationEvent!=="undefined" &&
+typeof DeviceOrientationEvent.requestPermission==="function"){
+await DeviceOrientationEvent.requestPermission();
+}
+
+window.addEventListener("deviceorientationabsolute",e=>{
+if(e.alpha!==null){
+boatHeading=360-e.alpha;
+updateLive();
+}
+});
+
+navigator.geolocation.watchPosition(pos=>{
+lat=pos.coords.latitude;
+lon=pos.coords.longitude;
+if(pos.coords.heading!==null) boatHeading=pos.coords.heading;
+
+updateSpeed(pos);
+fetchWeatherCurrent();
+},err=>alert(err.message),{enableHighAccuracy:true});
+}
+
+/* ========== WIND ========== */
+
+function angleDiff(a,b){let d=Math.abs(a-b)%360;return d>180?360-d:d;}
+
+function updateLive(){
+if(boatHeading===null||windDir===null)return;
+
+document.getElementById("heading").innerText=boatHeading.toFixed(0);
+document.getElementById("winddir").innerText=windDir.toFixed(0);
+document.getElementById("windspeed").innerText=windSpeed;
+
+const rel=(windDir-boatHeading+360)%360;
+document.getElementById("windVector").style.transform=`rotate(${rel}deg)`;
+
+let diff=angleDiff(boatHeading,windDir);
+let impact=diff<45?"Headwind":diff>135?"Tailwind":rel<180?"Starboard Cross":"Port Cross";
+
+document.getElementById("impact").innerText=impact+" ("+diff.toFixed(0)+"°)";
+updateBearing();
+}
+
+/* ========== WEATHER ========== */
+
+async function fetchWeatherCurrent(){
+if(lat===null)return;
+const url=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=wind_speed_10m,wind_direction_10m&windspeed_unit=mph`;
+const res=await fetch(url);
+const data=await res.json();
+windDir=data.current.wind_direction_10m;
+windSpeed=data.current.wind_speed_10m;
+updateLive();
+fetchHourly();
+}
+
+async function fetchHourly(){
+const url=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,wind_speed_10m,wind_direction_10m&temperature_unit=fahrenheit&windspeed_unit=mph&forecast_days=1&timezone=auto`;
+const res=await fetch(url);
+const data=await res.json();
+const tbody=document.querySelector("#weather-table tbody");
+tbody.innerHTML="";
+const now=new Date(); let count=0, worst=0;
+
+data.hourly.time.forEach((t,i)=>{
+const time=new Date(t);
+if(time>=now && count<12){
+const temp=data.hourly.temperature_2m[i];
+const wind=data.hourly.wind_speed_10m[i];
+const dir=data.hourly.wind_direction_10m[i];
+if(wind>worst)worst=wind;
+let rating="GOOD",cls="good";
+if(wind>12){rating="MODERATE";cls="moderate";}
+if(wind>18){rating="POOR";cls="bad";}
+tbody.innerHTML+=`<tr>
+<td>${time.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</td>
+<td>${temp}</td>
+<td>${wind}</td>
+<td>${dir}°</td>
+<td class="${cls}">${rating}</td></tr>`;
+count++;
+}});
+document.getElementById("practice-rating").innerHTML=
+worst>18?"<span class='bad'>Likely Cancel</span>":
+worst>12?"<span class='moderate'>Experienced Crews Only</span>":
+"<span class='good'>Full Practice Recommended</span>";
+}
+
+/* ========== TIDES ========== */
+
+async function fetchTides(){
+const today=new Date();
+const dateStr=today.toISOString().slice(0,10).replaceAll("-","");
+const url=`https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=predictions&begin_date=${dateStr}&end_date=${dateStr}&datum=MLLW&station=${NOAA_STATION}&time_zone=lst_ldt&units=english&interval=hilo&format=json`;
+const res=await fetch(url);
+const data=await res.json();
+const tbody=document.querySelector("#tide-table tbody");
+tbody.innerHTML=""; let heights=[];
+data.predictions.forEach(e=>{
+tbody.innerHTML+=`<tr>
+<td>${e.type==="H"?"High":"Low"}</td>
+<td>${new Date(e.t).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</td>
+<td>${e.v}</td></tr>`;
+heights.push(parseFloat(e.v));
+});
+if(heights.length>=2){
+const diff=Math.max(...heights)-Math.min(...heights);
+document.getElementById("current-estimate").innerText=
+diff>3?"Strong":diff>1.5?"Moderate":"Light";
+}
+}
+fetchTides();
+
+/* ========== RACE TELEMETRY ========== */
+
+function haversine(lat1,lon1,lat2,lon2){
+const R=6371000, toRad=x=>x*Math.PI/180;
+const dLat=toRad(lat2-lat1), dLon=toRad(lon2-lon1);
+const a=Math.sin(dLat/2)**2+
+Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
+return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+function startRace(){
+raceActive=true; raceStartTime=Date.now();
+totalDistance=0; lastPosition=null; raceData=[];
+timerInterval=setInterval(()=> {
+document.getElementById("race-time").innerText=
+Math.floor((Date.now()-raceStartTime)/1000);
+},1000);
+}
+
+function stopRace(){ raceActive=false; clearInterval(timerInterval); }
+
+function updateSpeed(pos){
+const speed=pos.coords.speed?pos.coords.speed*2.237:0;
+document.getElementById("speed").innerText=speed.toFixed(1);
+
+if(raceActive){
+const lat=pos.coords.latitude, lon=pos.coords.longitude;
+if(lastPosition){
+const d=haversine(lastPosition.lat,lastPosition.lon,lat,lon);
+totalDistance+=d;
+document.getElementById("distance").innerText=totalDistance.toFixed(1);
+if(totalDistance>=500){
+const elapsed=(Date.now()-raceStartTime)/1000;
+const split=elapsed/(totalDistance/500);
+const m=Math.floor(split/60), s=Math.floor(split%60);
+document.getElementById("split500").innerText=
+m+":"+String(s).padStart(2,"0");
+}}
+raceData.push({time:(Date.now()-raceStartTime)/1000,lat,lon,speed});
+lastPosition={lat,lon};
+}
+}
+
+function downloadData(){
+let csv="time,lat,lon,speed_mph\n";
+raceData.forEach(r=>csv+=`${r.time},${r.lat},${r.lon},${r.speed}\n`);
+const blob=new Blob([csv],{type:"text/csv"});
+const url=URL.createObjectURL(blob);
+const a=document.createElement("a");
+a.href=url; a.download="race_data.csv"; a.click();
+}
+
+/* ========== BEARING LOCK ========== */
+
+function lockBearing(){
+if(boatHeading!==null){
+lockedBearing=boatHeading;
+document.getElementById("locked").innerText=lockedBearing.toFixed(0);
+}
+}
+
+function updateBearing(){
+if(lockedBearing===null||boatHeading===null)return;
+let diff=angleDiff(boatHeading,lockedBearing);
+document.getElementById("bearing-diff").innerText="Off by "+diff.toFixed(1)+"°";
+}
+
+/* ========== COUNTDOWN ========== */
+
+function startCountdown(){
+let sec=parseInt(document.getElementById("countdown-input").value);
+if(isNaN(sec))return;
+const display=document.getElementById("countdown-display");
+display.innerText=sec;
+const interval=setInterval(()=>{
+sec--; display.innerText=sec;
+if(sec<=0){clearInterval(interval);display.innerText="GO";}
+},1000);
+}
+
+</script>
+</body>
+</html>
