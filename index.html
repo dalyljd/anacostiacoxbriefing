@@ -162,7 +162,7 @@ async function enableSensors() {
   }
 }
 
-/* ===== Update Live Wind / Heading ===== */
+/* ===== Live Wind / Heading ===== */
 function angleDiff(a,b){let d=Math.abs(a-b)%360;return d>180?360-d:d;}
 function updateLive() {
   if (!headingSupported) return;
@@ -183,9 +183,149 @@ function updateLive() {
   updateBearing();
 }
 
-/* ===== Weather, Tides, Race Telemetry, Bearing Lock, Countdown ===== */
-/* ... same as previous full HTML code, unchanged ... */
-/* Just make sure to call updateDeviceStatus() after GPS or heading updates */
+/* ===== Weather ===== */
+async function fetchWeatherCurrent() {
+  if(lat===null) return;
+  const url=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=wind_speed_10m,wind_direction_10m&windspeed_unit=mph`;
+  const res=await fetch(url);
+  const data=await res.json();
+  windDir=data.current.wind_direction_10m;
+  windSpeed=data.current.wind_speed_10m;
+  updateLive();
+  fetchHourly();
+}
+
+async function fetchHourly(){
+  const url=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,wind_speed_10m,wind_direction_10m&temperature_unit=fahrenheit&windspeed_unit=mph&forecast_days=1&timezone=auto`;
+  const res=await fetch(url);
+  const data=await res.json();
+  const tbody=document.querySelector("#weather-table tbody");
+  tbody.innerHTML="";
+  const now=new Date(); let count=0, worst=0;
+  data.hourly.time.forEach((t,i)=>{
+    const time=new Date(t);
+    if(time>=now && count<12){
+      const temp=data.hourly.temperature_2m[i];
+      const wind=data.hourly.wind_speed_10m[i];
+      const dir=data.hourly.wind_direction_10m[i];
+      if(wind>worst) worst=wind;
+      let rating="GOOD", cls="good";
+      if(wind>12){rating="MODERATE"; cls="moderate";}
+      if(wind>18){rating="POOR"; cls="bad";}
+      tbody.innerHTML+=`<tr>
+        <td>${time.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</td>
+        <td>${temp}</td>
+        <td>${wind}</td>
+        <td>${dir}°</td>
+        <td class="${cls}">${rating}</td></tr>`;
+      count++;
+    }
+  });
+  document.getElementById("practice-rating").innerHTML=
+    worst>18?"<span class='bad'>Likely Cancel</span>":
+    worst>12?"<span class='moderate'>Experienced Crews Only</span>":
+    "<span class='good'>Full Practice Recommended</span>";
+}
+
+/* ===== Tides ===== */
+async function fetchTides(){
+  const today=new Date();
+  const dateStr=today.toISOString().slice(0,10).replaceAll("-","");
+  const url=`https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=predictions&begin_date=${dateStr}&end_date=${dateStr}&datum=MLLW&station=${NOAA_STATION}&time_zone=lst_ldt&units=english&interval=hilo&format=json`;
+  const res=await fetch(url);
+  const data=await res.json();
+  const tbody=document.querySelector("#tide-table tbody");
+  tbody.innerHTML=""; let heights=[];
+  data.predictions.forEach(e=>{
+    tbody.innerHTML+=`<tr>
+      <td>${e.type==="H"?"High":"Low"}</td>
+      <td>${new Date(e.t).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</td>
+      <td>${e.v}</td></tr>`;
+    heights.push(parseFloat(e.v));
+  });
+  if(heights.length>=2){
+    const diff=Math.max(...heights)-Math.min(...heights);
+    document.getElementById("current-estimate").innerText=
+      diff>3?"Strong":diff>1.5?"Moderate":"Light";
+  }
+}
+fetchTides();
+
+/* ===== Race Telemetry ===== */
+function haversine(lat1,lon1,lat2,lon2){
+  const R=6371000, toRad=x=>x*Math.PI/180;
+  const dLat=toRad(lat2-lat1), dLon=toRad(lon2-lon1);
+  const a=Math.sin(dLat/2)**2+
+          Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+function startRace(){
+  raceActive=true; raceStartTime=Date.now();
+  totalDistance=0; lastPosition=null; raceData=[];
+  timerInterval=setInterval(()=> {
+    document.getElementById("race-time").innerText=
+      Math.floor((Date.now()-raceStartTime)/1000);
+  },1000);
+}
+
+function stopRace(){ raceActive=false; clearInterval(timerInterval); }
+
+function updateSpeed(pos){
+  const speed=pos.coords.speed?pos.coords.speed*2.237:0;
+  document.getElementById("speed").innerText=speed.toFixed(1);
+
+  if(raceActive){
+    const lat=pos.coords.latitude, lon=pos.coords.longitude;
+    if(lastPosition){
+      const d=haversine(lastPosition.lat,lastPosition.lon,lat,lon);
+      totalDistance+=d;
+      document.getElementById("distance").innerText=totalDistance.toFixed(1);
+      if(totalDistance>=500){
+        const elapsed=(Date.now()-raceStartTime)/1000;
+        const split=elapsed/(totalDistance/500);
+        const m=Math.floor(split/60), s=Math.floor(split%60);
+        document.getElementById("split500").innerText=
+          m+":"+String(s).padStart(2,"0");
+      }
+    }
+    raceData.push({time:(Date.now()-raceStartTime)/1000,lat,lon,speed});
+    lastPosition={lat,lon};
+  }
+}
+
+function downloadData(){
+  let csv="time,lat,lon,speed_mph\n";
+  raceData.forEach(r=>csv+=`${r.time},${r.lat},${r.lon},${r.speed}\n`);
+  const blob=new Blob([csv],{type:"text/csv"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url; a.download="race_data.csv"; a.click();
+}
+
+/* ===== Bearing Lock ===== */
+function lockBearing(){
+  if(!headingSupported || boatHeading===null) return;
+  lockedBearing = boatHeading;
+  document.getElementById("locked").innerText = lockedBearing.toFixed(0);
+}
+function updateBearing(){
+  if(!headingSupported || lockedBearing===null || boatHeading===null) return;
+  let diff = angleDiff(boatHeading, lockedBearing);
+  document.getElementById("bearing-diff").innerText="Off by "+diff.toFixed(1)+"°";
+}
+
+/* ===== Countdown ===== */
+function startCountdown(){
+  let sec=parseInt(document.getElementById("countdown-input").value);
+  if(isNaN(sec)) return;
+  const display=document.getElementById("countdown-display");
+  display.innerText=sec;
+  const interval=setInterval(()=>{
+    sec--; display.innerText=sec;
+    if(sec<=0){clearInterval(interval); display.innerText="GO";}
+  },1000);
+}
 </script>
 </body>
 </html>
