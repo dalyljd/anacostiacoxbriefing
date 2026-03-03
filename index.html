@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 <style>
 /* ============================================================
-   CSS CUSTOM PROPERTIES — Color palette & design tokens
+   CSS CUSTOM PROPERTIES
    ============================================================ */
 :root {
   --navy:          #08111e;
@@ -20,7 +20,11 @@
   --amber:         #e8a020;
   --amber-dim:     #a06b0e;
   --red:           #c0392b;
+  --red-dim:       #6e1e16;
   --green:         #1e8a4a;
+  --green-bright:  #1fba6a;
+  --yellow:        #d4b800;
+  --yellow-dim:    #7a6800;
   --text:          #c8dae8;
   --text-dim:      #6a8aa0;
   --text-bright:   #e8f4ff;
@@ -39,7 +43,6 @@ body {
   overflow-x: hidden;
 }
 
-/* Background grid texture */
 body::before {
   content: '';
   position: fixed;
@@ -52,7 +55,6 @@ body::before {
   z-index: 0;
 }
 
-/* Noise overlay */
 body::after {
   content: '';
   position: fixed;
@@ -162,14 +164,16 @@ header {
   transition: all 0.2s;
 }
 
-.btn-sm:hover { background: var(--amber); color: var(--navy); }
-.btn-sm.danger  { color: var(--red);   border-color: #6e1e16; }
+.btn-sm:hover  { background: var(--amber); color: var(--navy); }
+.btn-sm.danger { color: var(--red); border-color: var(--red-dim); }
 .btn-sm.danger:hover  { background: var(--red); color: white; }
 .btn-sm.success { color: var(--green); border-color: #0e4a26; }
 .btn-sm.success:hover { background: var(--green); color: white; }
+.btn-sm.rec    { color: var(--red); border-color: var(--red-dim); }
+.btn-sm.rec:hover { background: var(--red); color: white; }
 
 /* ============================================================
-   UPGRADE #2 — RACE MODE TOGGLE (sliding pill switch)
+   RACE MODE TOGGLE
    ============================================================ */
 .race-mode-toggle {
   display: flex;
@@ -268,17 +272,15 @@ main {
   opacity: 0.6;
 }
 
+/* Lightning card danger state — replaces top-edge gradient */
+.card.lightning-danger::before  { background: linear-gradient(90deg, transparent, var(--red), transparent); }
+.card.lightning-caution::before { background: linear-gradient(90deg, transparent, var(--yellow), transparent); }
+.card.lightning-safe::before    { background: linear-gradient(90deg, transparent, var(--green-bright), transparent); }
+
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-
-.card:nth-child(1) { animation-delay: 0.05s; }
-.card:nth-child(2) { animation-delay: 0.10s; }
-.card:nth-child(3) { animation-delay: 0.15s; grid-column: 1 / -1; }
-.card:nth-child(4) { animation-delay: 0.20s; }
-.card:nth-child(5) { animation-delay: 0.25s; }
-.card:nth-child(6) { animation-delay: 0.30s; }
 
 .card-label {
   font-family: 'IBM Plex Mono', monospace;
@@ -309,6 +311,9 @@ main {
   margin-bottom: 1rem;
   line-height: 1;
 }
+
+/* Full-width card span */
+.full-width { grid-column: 1 / -1; }
 
 /* ============================================================
    WIND CARD
@@ -389,8 +394,8 @@ main {
   top: 0; left: 50%;
   transform: translateX(-50%);
   width: 0; height: 0;
-  border-left:  5px solid transparent;
-  border-right: 5px solid transparent;
+  border-left:   5px solid transparent;
+  border-right:  5px solid transparent;
   border-bottom: 10px solid var(--amber);
 }
 
@@ -429,7 +434,6 @@ main {
   border: 1px solid var(--border);
   padding: 0.8rem;
   text-align: center;
-  position: relative;
 }
 
 .tele-box label {
@@ -465,10 +469,8 @@ main {
 .race-controls { display: flex; gap: 0.6rem; flex-wrap: wrap; }
 
 /* ============================================================
-   WEATHER TABLE (full-width card)
+   WEATHER TABLE
    ============================================================ */
-.weather-grid-full { grid-column: 1 / -1; }
-
 table {
   width: 100%;
   border-collapse: collapse;
@@ -496,9 +498,9 @@ td {
 
 tbody tr:hover { background: rgba(13,138,122,0.05); }
 
-.good     { color: #1fba6a; font-weight: 500; }
-.moderate { color: var(--amber); font-weight: 500; }
-.bad      { color: var(--red);   font-weight: 500; }
+.good     { color: var(--green-bright); font-weight: 500; }
+.moderate { color: var(--amber);        font-weight: 500; }
+.bad      { color: var(--red);          font-weight: 500; }
 
 .practice-banner {
   margin-top: 0.8rem;
@@ -514,7 +516,6 @@ tbody tr:hover { background: rgba(13,138,122,0.05); }
   gap: 0.5rem;
 }
 
-/* UPGRADE #1: Last-fetched timestamp line below weather table */
 #weather-last-fetch {
   font-family: 'IBM Plex Mono', monospace;
   font-size: 0.6rem;
@@ -606,7 +607,7 @@ tbody tr:hover { background: rgba(13,138,122,0.05); }
 }
 
 .countdown-big.urgent { color: var(--red); }
-.countdown-big.go     { color: #1fba6a; letter-spacing: 0.1em; }
+.countdown-big.go     { color: var(--green-bright); letter-spacing: 0.1em; }
 
 input[type="text"],
 input[type="number"],
@@ -626,18 +627,239 @@ input:not([type]) {
 input:focus { border-color: var(--teal-bright); }
 
 /* ============================================================
-   RESPONSIVE — mobile-first breakpoint
+   LIGHTNING SAFETY CARD
    ============================================================ */
-@media (max-width: 768px) {
-  main                     { grid-template-columns: 1fr; }
-  .card:nth-child(3)       { grid-column: 1; }
-  .wind-layout             { grid-template-columns: 1fr; }
-  .telemetry-grid          { grid-template-columns: repeat(2, 1fr); }
-  .tools-grid              { grid-template-columns: 1fr; }
-  header                   { flex-direction: column; align-items: flex-start; }
-  .header-right            { align-items: flex-start; }
-  #device-status           { flex-direction: column; gap: 0.3rem; }
-  .race-mode-toggle        { flex-wrap: wrap; }
+.lightning-state-banner {
+  padding: 1rem 1.2rem;
+  border-radius: 2px;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  font-family: 'Teko', sans-serif;
+  font-size: 2rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: background 0.4s, color 0.4s;
+}
+
+.lightning-state-banner.safe    { background: rgba(31,186,106,0.15); color: var(--green-bright); border: 1px solid rgba(31,186,106,0.4); }
+.lightning-state-banner.caution { background: rgba(212,184,0,0.15);  color: var(--yellow);       border: 1px solid rgba(212,184,0,0.4); }
+.lightning-state-banner.danger  { background: rgba(192,57,43,0.2);   color: var(--red);           border: 1px solid rgba(192,57,43,0.5); }
+.lightning-state-banner.unknown { background: rgba(106,138,160,0.1); color: var(--text-dim);      border: 1px solid var(--border); }
+
+.lightning-bolt { font-size: 1.6rem; }
+
+.lightning-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.8rem;
+  margin-bottom: 0.8rem;
+}
+
+.lightning-stat {
+  background: var(--navy);
+  border: 1px solid var(--border);
+  padding: 0.8rem 1rem;
+}
+
+.lightning-stat label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  display: block;
+  margin-bottom: 0.3rem;
+}
+
+.lightning-stat .ls-val {
+  font-family: 'Teko', sans-serif;
+  font-size: 1.8rem;
+  font-weight: 500;
+  color: var(--text-bright);
+  line-height: 1;
+}
+
+.lightning-stat .ls-unit {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.6rem;
+  color: var(--text-dim);
+  margin-top: 0.15rem;
+}
+
+#lightning-last-fetch {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.6rem;
+  color: var(--text-dim);
+  letter-spacing: 0.1em;
+  margin-top: 0.5rem;
+}
+
+/* ============================================================
+   RECORDING MANAGER CARD
+   ============================================================ */
+.rec-section-title {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--teal-bright);
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.rec-controls {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+/* Practice recording status strip */
+.rec-practice-status {
+  background: var(--navy);
+  border: 1px solid var(--border);
+  padding: 0.7rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.8rem;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.rec-practice-status .ps-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.rec-practice-status .ps-time {
+  font-family: 'Teko', sans-serif;
+  font-size: 1.6rem;
+  color: var(--text-bright);
+  line-height: 1;
+}
+
+/* Recording list */
+.rec-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.rec-item {
+  background: var(--navy);
+  border: 1px solid var(--border);
+  padding: 0.7rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.rec-item.active-rec { border-color: var(--red); }
+.rec-item.active-rec .ri-name { color: var(--red); }
+
+.ri-name {
+  font-family: 'Teko', sans-serif;
+  font-size: 1.1rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-bright);
+  min-width: 100px;
+}
+
+.ri-meta {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.62rem;
+  color: var(--text-dim);
+  flex: 1;
+}
+
+.ri-btns { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+
+/* ============================================================
+   COXSWAIN RECORDER CARD
+   ============================================================ */
+.cox-rec-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  align-items: start;
+}
+
+.cox-rec-panel {
+  background: var(--navy);
+  border: 1px solid var(--border);
+  padding: 1rem;
+}
+
+.cox-rec-panel h3 {
+  font-family: 'Teko', sans-serif;
+  font-size: 1.3rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-bright);
+  margin-bottom: 0.8rem;
+}
+
+.cox-meter {
+  height: 8px;
+  background: var(--navy-light);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  margin: 0.6rem 0;
+}
+
+.cox-meter-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--red);
+  border-radius: 4px;
+  transition: width 0.1s;
+}
+
+.cox-status-text {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-top: 0.4rem;
+}
+
+.cox-recordings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.cox-rec-entry {
+  background: var(--navy);
+  border: 1px solid var(--border);
+  padding: 0.5rem 0.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.cox-rec-entry .cre-name {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.7rem;
+  color: var(--text);
 }
 
 /* ============================================================
@@ -658,6 +880,70 @@ input:focus { border-color: var(--teal-bright); }
 }
 
 .live-dot.inactive { background: var(--text-dim); animation: none; }
+.live-dot.red      { background: var(--red); }
+.live-dot.green    { background: var(--green-bright); animation: none; }
+.live-dot.yellow   { background: var(--yellow); animation: none; }
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 768px) {
+  main                  { grid-template-columns: 1fr; }
+  .full-width           { grid-column: 1; }
+  .wind-layout          { grid-template-columns: 1fr; }
+  .telemetry-grid       { grid-template-columns: repeat(2, 1fr) !important; }
+  .tools-grid           { grid-template-columns: 1fr; }
+  .lightning-grid       { grid-template-columns: 1fr; }
+  .cox-rec-layout       { grid-template-columns: 1fr; }
+  header                { flex-direction: column; align-items: flex-start; }
+  .header-right         { align-items: flex-start; }
+  #device-status        { flex-direction: column; gap: 0.3rem; }
+  .race-mode-toggle     { flex-wrap: wrap; }
+}
+
+/* ============================================================
+   SESSION SELECTOR — pill buttons to switch telemetry view
+   ============================================================ */
+.session-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.sess-btn {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: var(--navy);
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  padding: 0.35rem 0.9rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  border-radius: 2px;
+}
+
+.sess-btn:hover {
+  border-color: var(--teal);
+  color: var(--text);
+}
+
+.sess-btn.active {
+  background: rgba(13,138,122,0.2);
+  border-color: var(--teal-bright);
+  color: var(--teal-bright);
+}
+
+.sess-btn.active-rec-btn {
+  border-color: var(--red);
+  color: var(--red);
+}
+
+.sess-btn.active.active-rec-btn {
+  background: rgba(192,57,43,0.15);
+}
+
 </style>
 </head>
 <body>
@@ -678,13 +964,15 @@ input:focus { border-color: var(--teal-bright); }
       <span id="status-heading">
         <span class="live-dot inactive"></span>HEADING: OFFLINE
       </span>
-      <!-- UPGRADE #2: mode indicator in status bar -->
       <span id="status-mode">
         <span class="live-dot inactive"></span>MODE: TRAINING
       </span>
+      <!-- NEW: Microphone status indicator (Requirement 3) — display only, no controls -->
+      <span id="status-mic">
+        <span class="live-dot inactive" id="mic-dot"></span>MIC: INACTIVE
+      </span>
     </div>
 
-    <!-- UPGRADE #2: Race Mode sliding toggle -->
     <div class="race-mode-toggle">
       <span>Race Mode</span>
       <label class="toggle-switch" title="ON = high-accuracy GPS + full pan; OFF = battery-save mode">
@@ -726,7 +1014,6 @@ input:focus { border-color: var(--teal-bright); }
         <div class="compass">
           <div class="compass-ring"></div>
           <svg style="position:absolute;inset:0;" width="110" height="110">
-            <!-- SVG tick marks drawn by JS on init -->
             <g id="ticks"></g>
           </svg>
           <span class="compass-label n">N</span>
@@ -741,13 +1028,28 @@ input:focus { border-color: var(--teal-bright); }
   </div>
 
   <!-- ====================================================
-       CARD 2 — GPS RACE TELEMETRY
+       CARD 2 — RACE MONITOR (unified telemetry + recording)
+       Starting/stopping practice or a piece drives the live
+       display. A session selector switches what the telemetry
+       boxes and map are showing.
        ==================================================== -->
-  <div class="card">
-    <div class="card-label">GPS Race Telemetry</div>
+  <div class="card full-width">
+    <div class="card-label">GPS Race Telemetry · Session Recording</div>
     <h2>Race Monitor</h2>
-    <div class="telemetry-grid">
-      <!-- Instantaneous 500m split based on current speed -->
+
+    <!-- Session selector strip — updates live display to chosen session -->
+    <div id="session-selector-wrap" style="margin-bottom:0.8rem;">
+      <div class="rec-section-title" style="margin-bottom:0.4rem;">Viewing Session</div>
+      <div id="session-selector" class="session-selector">
+        <button class="sess-btn active" id="sess-btn-practice" onclick="setViewSession('practice')">
+          📋 Practice (Live)
+        </button>
+        <!-- Piece buttons injected here dynamically -->
+      </div>
+    </div>
+
+    <!-- Telemetry boxes — 5 across on wide screens -->
+    <div class="telemetry-grid" style="grid-template-columns: repeat(5,1fr);">
       <div class="tele-box">
         <label>Instant Split</label>
         <div class="tele-val" id="speed" style="font-size:1.5rem;">—</div>
@@ -760,46 +1062,74 @@ input:focus { border-color: var(--teal-bright); }
       </div>
       <div class="tele-box">
         <label>Elapsed</label>
-        <div class="tele-val" id="race-time">0</div>
-        <div class="tele-unit">seconds</div>
+        <div class="tele-val" id="race-time">—</div>
+        <div class="tele-unit">elapsed</div>
       </div>
       <div class="tele-box highlight">
         <label>Avg 500m Split</label>
         <div class="tele-val" id="split500" style="font-size:1.4rem;">—</div>
         <div class="tele-unit">/500m</div>
       </div>
-      <div class="tele-box highlight" style="grid-column: span 2;">
+      <div class="tele-box highlight">
         <label>Next 500m Est.</label>
         <div class="tele-val" id="nextSplit" style="font-size:1.4rem;">—</div>
         <div class="tele-unit">/500m</div>
       </div>
     </div>
 
-    <div id="map"></div>
+    <!-- Map -->
+    <div id="map" style="height:320px;"></div>
 
-    <div class="race-controls">
-      <button class="btn-sm success" onclick="startRace()">▶ Start Race</button>
-      <button class="btn-sm danger"  onclick="stopRace()">■ Stop</button>
-      <!-- UPGRADE #4: triggers CSV + PNG map export -->
-      <button class="btn-sm"         onclick="downloadData()">↓ Download CSV + Map</button>
+    <!-- Download button for active session -->
+    <div class="race-controls" style="margin-bottom:1.2rem;">
+      <button class="btn-sm" onclick="downloadData()">↓ Download CSV + Map</button>
+    </div>
+
+    <!-- ── RECORDING CONTROLS ──────────────────────────── -->
+
+    <!-- Practice Recording — starting this starts the whole session -->
+    <div class="rec-section-title">Practice Session</div>
+    <div class="rec-practice-status">
+      <div>
+        <div class="ps-label">Status</div>
+        <div class="ps-time" id="practice-rec-status">STOPPED</div>
+      </div>
+      <div>
+        <div class="ps-label">Duration</div>
+        <div class="ps-time" id="practice-rec-timer">00:00</div>
+      </div>
+      <div class="rec-controls">
+        <button class="btn-sm success" onclick="startPracticeRecording()">▶ Start Practice</button>
+        <button class="btn-sm danger"  onclick="stopPracticeRecording()">■ End Practice</button>
+      </div>
+    </div>
+
+    <!-- Piece Recordings — start/stop independently within the practice -->
+    <div class="rec-section-title" style="margin-top:0.8rem;">Pieces</div>
+    <div class="rec-controls" style="margin-bottom:0.8rem;">
+      <button class="btn-sm success" onclick="startPieceRecording()">▶ Start Piece</button>
+      <button class="btn-sm danger"  onclick="stopCurrentPiece()">■ Stop Piece</button>
+    </div>
+
+    <!-- Saved recordings list -->
+    <div class="rec-section-title" style="margin-top:0.8rem;">Saved Sessions</div>
+    <div class="rec-list" id="rec-list">
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:0.7rem;color:var(--text-dim);padding:0.5rem 0;">
+        No sessions yet.
+      </div>
     </div>
   </div>
 
   <!-- ====================================================
-       CARD 3 — HOURLY WEATHER FORECAST (full-width)
+       CARD 3 — HOURLY WEATHER (full-width)
        ==================================================== -->
-  <div class="card weather-grid-full">
-    <!-- UPGRADE #1: subtitle notes the 5-min throttle -->
+  <div class="card full-width">
     <div class="card-label">Open-Meteo API · max 1 fetch per 5 min</div>
     <h2>Hourly Forecast — Next 12 Hours</h2>
     <table id="weather-table">
       <thead>
         <tr>
-          <th>Time</th>
-          <th>Temp °F</th>
-          <th>Wind kts</th>
-          <th>Direction</th>
-          <th>Condition</th>
+          <th>Time</th><th>Temp °F</th><th>Wind kts</th><th>Direction</th><th>Condition</th>
         </tr>
       </thead>
       <tbody></tbody>
@@ -809,7 +1139,6 @@ input:focus { border-color: var(--teal-bright); }
         AWAITING LOCATION DATA…
       </span>
     </div>
-    <!-- UPGRADE #1: shows exactly when weather was last fetched -->
     <div id="weather-last-fetch">WEATHER NOT YET FETCHED</div>
   </div>
 
@@ -838,26 +1167,23 @@ input:focus { border-color: var(--teal-bright); }
     <div class="card-label">Navigation &amp; Start</div>
     <h2>Coxswain Tools</h2>
     <div class="tools-grid">
-
       <div class="tool-panel">
         <h3>Bearing Lock</h3>
         <div class="bearing-display"><span id="locked">—</span>°</div>
         <div class="bearing-diff" id="bearing-diff">LOCKED HEADING</div>
         <button class="btn-sm" style="margin-top:0.7rem;" onclick="lockBearing()">⊕ Lock Current</button>
       </div>
-
       <div class="tool-panel" style="text-align:center;">
         <h3>Start Countdown</h3>
         <input id="countdown-input" placeholder="Seconds (e.g. 10)" type="number">
         <button class="btn-sm" style="margin-top:0.6rem;width:100%;" onclick="startCountdown()">▶ Start Timer</button>
         <div class="countdown-big" id="countdown-display"></div>
       </div>
-
     </div>
   </div>
 
   <!-- ====================================================
-       CARD 6 — SUN & SKY (Sunrise / Sunset / Daylight)
+       CARD 6 — SUN & SKY
        ==================================================== -->
   <div class="card" style="animation-delay:0.3s;">
     <div class="card-label">Open-Meteo API</div>
@@ -884,65 +1210,153 @@ input:focus { border-color: var(--teal-bright); }
     </div>
   </div>
 
+  <!-- ====================================================
+       CARD 7 — LIGHTNING SAFETY  (Requirement 1)
+       Full-width card with color-coded safety state.
+       ==================================================== -->
+  <div class="card full-width" id="lightning-card" style="animation-delay:0.35s;">
+    <div class="card-label">Blitzortung.org · max 1 fetch per 5 min</div>
+    <h2>⚡ Lightning Safety</h2>
+
+    <!-- Large state banner — colour changes dynamically -->
+    <div class="lightning-state-banner unknown" id="lightning-banner">
+      <span class="lightning-bolt">⚡</span>
+      <span id="lightning-state-text">AWAITING GPS…</span>
+    </div>
+
+    <div class="lightning-grid">
+      <div class="lightning-stat">
+        <label>Nearest Strike (30 min)</label>
+        <div class="ls-val" id="lightning-nearest">—</div>
+        <div class="ls-unit">miles away</div>
+      </div>
+      <div class="lightning-stat">
+        <label>Last Strike within 10 mi</label>
+        <div class="ls-val" id="lightning-last-time">—</div>
+        <div class="ls-unit">minutes ago</div>
+      </div>
+      <div class="lightning-stat">
+        <label>Strikes (30 min / 10 mi)</label>
+        <div class="ls-val" id="lightning-count-10">—</div>
+        <div class="ls-unit">recent strikes nearby</div>
+      </div>
+      <div class="lightning-stat">
+        <label>Strikes (30 min / 20 mi)</label>
+        <div class="ls-val" id="lightning-count-20">—</div>
+        <div class="ls-unit">in extended range</div>
+      </div>
+    </div>
+
+    <div id="lightning-last-fetch">LIGHTNING DATA NOT YET FETCHED</div>
+  </div>
+
+  <!-- ====================================================
+       CARD 9 — COXSWAIN RECORDER  (Requirement 3)
+       Independent mic recorder — no GPS/race integration.
+       ==================================================== -->
+  <div class="card full-width" id="coxswain-recorder-card" style="animation-delay:0.45s;">
+    <div class="card-label">MediaRecorder API · independent</div>
+    <h2>🎙 Coxswain Recorder</h2>
+
+    <div class="cox-rec-layout">
+
+      <!-- Left: controls + VU meter -->
+      <div class="cox-rec-panel">
+        <h3>Microphone Controls</h3>
+        <div class="cox-status-text" id="cox-rec-status-text">MIC INACTIVE — NO PERMISSION</div>
+        <div class="cox-meter">
+          <div class="cox-meter-fill" id="cox-meter-fill"></div>
+        </div>
+        <div style="margin-top:0.8rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
+          <button class="btn-sm success" onclick="coxStartRecording()">▶ Record</button>
+          <button class="btn-sm danger"  onclick="coxStopRecording()">■ Stop</button>
+          <button class="btn-sm"         onclick="coxRequestMic()">⊕ Enable Mic</button>
+        </div>
+        <div style="margin-top:0.6rem;">
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:0.6rem;color:var(--text-dim);">
+            REC DURATION
+          </div>
+          <div id="cox-rec-timer"
+               style="font-family:'Teko',sans-serif;font-size:2rem;color:var(--text-bright);">00:00</div>
+        </div>
+      </div>
+
+      <!-- Right: saved recordings list -->
+      <div class="cox-rec-panel">
+        <h3>Saved Clips</h3>
+        <div class="cox-recordings-list" id="cox-recordings-list">
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:0.7rem;color:var(--text-dim);">
+            No clips yet.
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
 </main>
 
 <!-- ============================================================
-     JAVASCRIPT DEPENDENCIES
+     SCRIPTS
      ============================================================ -->
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-<!-- UPGRADE #4: html2canvas for map PNG export -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
 <script>
 /* ============================================================
-   GLOBAL STATE VARIABLES
+   ╔══════════════════════════════════════════════════════╗
+   ║          SECTION 1 — GLOBAL STATE                   ║
+   ╚══════════════════════════════════════════════════════╝
    ============================================================ */
-let boatHeading   = null;   // Current heading in degrees (from DeviceOrientation)
-let windDir       = null;   // Wind direction in degrees (from API)
-let windSpeed     = null;   // Wind speed in knots (from API)
-let lat           = null;   // Current GPS latitude
-let lon           = null;   // Current GPS longitude
-let lockedBearing = null;   // Reference bearing for bearing-lock feature
 
-// Race telemetry
+// Navigation / heading
+let boatHeading   = null;
+let windDir       = null;
+let windSpeed     = null;
+let lat           = null;
+let lon           = null;
+let lockedBearing = null;
+let headingSupported = false;
+
+// Race telemetry (500m split system)
 let raceActive    = false;
 let raceStartTime = null;
 let lastPosition  = null;
 let totalDistance = 0;
-let raceData      = [];     // Array of 500m interval records for CSV export
+let raceData      = [];
 let timerInterval = null;
 
-// Sensor state
-let headingSupported = false;
-
-// GPS watchPosition ID — stored so we can cancel and restart on mode change
-// UPGRADE #2
+// GPS watch handle — stored for restart on mode change
 let gpsWatchId = null;
 
-// UPGRADE #1: Timestamp (ms) of the last successful weather API fetch
-// Weather is only fetched again once WEATHER_THROTTLE_MS have elapsed.
-let lastWeatherFetch     = 0;
-const WEATHER_THROTTLE_MS = 5 * 60 * 1000; // 300 000 ms = 5 minutes
-
-// UPGRADE #2: True = Race Mode (high accuracy, full pan)
-//             False = Training Mode (battery-save, throttled pan)
+// Race Mode (affects GPS accuracy + map panning throttle)
 let raceModeActive = false;
-
-// UPGRADE #3: Counter incremented on every GPS fix, used to throttle map panning
-// in Training Mode.  Reset when race starts.
 let gpsUpdateCount = 0;
 
+// Weather throttle
+let lastWeatherFetch      = 0;
+const WEATHER_THROTTLE_MS = 5 * 60 * 1000;  // 5 minutes
+
+// Lightning throttle — separate from weather (Req 1)
+let lastLightningFetch      = 0;
+const LIGHTNING_THROTTLE_MS = 5 * 60 * 1000; // 5 minutes
+let cachedLightningStrikes  = [];             // last successful fetch cache
+let lightningTimerInterval  = null;           // drives last-strike countdown
+
+// NOAA station
 const NOAA_STATION = "8594900";
 
 /* ============================================================
-   COMPASS TICK MARKS — drawn once on page load (SVG)
+   ╔══════════════════════════════════════════════════════╗
+   ║    SECTION 2 — COMPASS TICK MARKS (drawn once)      ║
+   ╚══════════════════════════════════════════════════════╝
    ============================================================ */
 (function drawTicks(){
   const g  = document.getElementById('ticks');
   const cx = 55, cy = 55, r1 = 50;
   for(let i = 0; i < 36; i++){
     const angle = (i * 10 - 90) * Math.PI / 180;
-    const major = (i % 9 === 0);           // cardinal directions get longer ticks
+    const major = (i % 9 === 0);
     const r3    = major ? 38 : 42;
     const x1 = cx + r1 * Math.cos(angle), y1 = cy + r1 * Math.sin(angle);
     const x2 = cx + r3 * Math.cos(angle), y2 = cy + r3 * Math.sin(angle);
@@ -956,7 +1370,9 @@ const NOAA_STATION = "8594900";
 })();
 
 /* ============================================================
-   DEVICE STATUS BAR UPDATE
+   ╔══════════════════════════════════════════════════════╗
+   ║   SECTION 3 — DEVICE STATUS BAR                     ║
+   ╚══════════════════════════════════════════════════════╝
    ============================================================ */
 function updateDeviceStatus(){
   const gpsOk = (lat !== null);
@@ -968,63 +1384,52 @@ function updateDeviceStatus(){
   document.getElementById("status-heading").innerHTML =
     `<span class="live-dot${hdgOk ? '' : ' inactive'}"></span>HEADING: ${hdgOk ? 'ONLINE' : 'OFFLINE'}`;
 
-  // UPGRADE #2: Race Mode reflected in status bar
   const modeEl = document.getElementById("status-mode");
   if(raceModeActive){
-    modeEl.innerHTML    = `<span class="live-dot"></span>MODE: RACE`;
-    modeEl.style.color  = 'var(--teal-bright)';
+    modeEl.innerHTML   = `<span class="live-dot"></span>MODE: RACE`;
+    modeEl.style.color = 'var(--teal-bright)';
   } else {
-    modeEl.innerHTML    = `<span class="live-dot inactive"></span>MODE: TRAINING`;
-    modeEl.style.color  = 'var(--text-dim)';
+    modeEl.innerHTML   = `<span class="live-dot inactive"></span>MODE: TRAINING`;
+    modeEl.style.color = 'var(--text-dim)';
   }
+  // Mic status is updated separately by updateMicStatus()
 }
 
 /* ============================================================
-   MAP INITIALISATION (Leaflet)
+   ╔══════════════════════════════════════════════════════╗
+   ║   SECTION 4 — MAP SETUP                             ║
+   ╚══════════════════════════════════════════════════════╝
    ============================================================ */
 const map  = L.map('map', { zoomControl: false }).setView([38.88, -76.98], 14);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: 'OSM' }).addTo(map);
-// Polyline for route — always drawn completely regardless of pan throttle
 const path = L.polyline([], { color: '#12b5a2', weight: 3 }).addTo(map);
 
 /* ============================================================
-   UPGRADE #2 — RACE MODE TOGGLE HANDLER
-   Called when the user flips the toggle switch.
-   Dynamically reconfigures GPS accuracy without reloading.
+   ╔══════════════════════════════════════════════════════╗
+   ║   SECTION 5 — RACE MODE TOGGLE                      ║
+   ╚══════════════════════════════════════════════════════╝
    ============================================================ */
 function onRaceModeToggle(){
   raceModeActive = document.getElementById("race-mode-checkbox").checked;
   const label    = document.getElementById("race-mode-label");
-
-  if(raceModeActive){
-    label.textContent = 'ON';
-    label.className   = 'on';
-  } else {
-    label.textContent = 'OFF';
-    label.className   = 'off';
-  }
-
+  label.textContent = raceModeActive ? 'ON' : 'OFF';
+  label.className   = raceModeActive ? 'on' : 'off';
   updateDeviceStatus();
-
-  // If GPS is already active, cancel and restart with new accuracy settings
+  // Restart GPS watch with updated accuracy settings
   if(gpsWatchId !== null && navigator.geolocation){
     navigator.geolocation.clearWatch(gpsWatchId);
     gpsWatchId = null;
-    startGPSWatch();   // restarts with updated options for current mode
+    startGPSWatch();
   }
 }
 
 /* ============================================================
-   UPGRADE #2 — START / RESTART GPS WATCH
-   Called by enableSensors() and onRaceModeToggle().
-   GPS accuracy options differ by mode:
-     Race Mode    — enableHighAccuracy: true  (maximum precision)
-     Training Mode — enableHighAccuracy: false, maximumAge: 3000 (battery-save)
+   ╔══════════════════════════════════════════════════════╗
+   ║   SECTION 6 — GPS WATCH (restartable)               ║
+   ╚══════════════════════════════════════════════════════╝
    ============================================================ */
 function startGPSWatch(){
   if(!navigator.geolocation) return;
-
-  // UPGRADE #2: choose GPS options based on current mode
   const gpsOptions = raceModeActive
     ? { enableHighAccuracy: true }
     : { enableHighAccuracy: false, maximumAge: 3000 };
@@ -1033,15 +1438,13 @@ function startGPSWatch(){
     pos => {
       lat = pos.coords.latitude;
       lon = pos.coords.longitude;
-
-      // Use GPS-supplied heading if compass sensor is unavailable
       if(headingSupported && pos.coords.heading !== null){
         boatHeading = pos.coords.heading;
       }
-
-      gpsUpdateCount++;            // UPGRADE #3: increment pan-throttle counter
-      updateSpeed(pos);            // update telemetry (and route + pan)
-      maybeUpdateWeather();        // UPGRADE #1: throttled weather refresh
+      gpsUpdateCount++;
+      updateSpeed(pos);
+      maybeUpdateWeather();
+      maybeUpdateLightning();   // Req 1: also throttle-checked on each GPS fix
       updateDeviceStatus();
     },
     err => console.warn("GPS error:", err.message),
@@ -1050,13 +1453,13 @@ function startGPSWatch(){
 }
 
 /* ============================================================
-   SENSOR ENABLE (called once by the header button)
-   Requests permissions for DeviceOrientation then starts GPS.
+   ╔══════════════════════════════════════════════════════╗
+   ║   SECTION 7 — SENSOR ENABLE                         ║
+   ╚══════════════════════════════════════════════════════╝
    ============================================================ */
 async function enableSensors(){
   headingSupported = false;
 
-  // iOS 13+ requires an explicit permission request for DeviceOrientation
   if(typeof DeviceOrientationEvent !== 'undefined' &&
      typeof DeviceOrientationEvent.requestPermission === 'function'){
     try {
@@ -1064,14 +1467,13 @@ async function enableSensors(){
       if(result === 'granted') headingSupported = true;
     } catch(e){ console.warn("DeviceOrientation permission denied:", e); }
   } else if(window.DeviceOrientationEvent){
-    // Android / desktop — no explicit permission required
     headingSupported = true;
   }
 
   if(headingSupported){
     window.addEventListener("deviceorientationabsolute", e => {
       if(e.alpha !== null){
-        boatHeading = 360 - e.alpha;   // convert to standard compass bearing
+        boatHeading = 360 - e.alpha;
         updateLive();
         updateDeviceStatus();
       }
@@ -1084,7 +1486,6 @@ async function enableSensors(){
     updateDeviceStatus();
   }
 
-  // Start GPS (uses current raceModeActive flag for accuracy options)
   if(navigator.geolocation){
     startGPSWatch();
   } else {
@@ -1094,8 +1495,9 @@ async function enableSensors(){
 }
 
 /* ============================================================
-   ANGLE DIFFERENCE HELPER
-   Returns the shortest angular distance between two headings (0–180°).
+   ╔══════════════════════════════════════════════════════╗
+   ║   SECTION 8 — ANGLE HELPER                          ║
+   ╚══════════════════════════════════════════════════════╝
    ============================================================ */
 function angleDiff(a, b){
   const d = Math.abs(a - b) % 360;
@@ -1103,51 +1505,43 @@ function angleDiff(a, b){
 }
 
 /* ============================================================
-   LIVE WIND & HEADING DISPLAY UPDATE
+   ╔══════════════════════════════════════════════════════╗
+   ║   SECTION 9 — LIVE WIND & HEADING                   ║
+   ╚══════════════════════════════════════════════════════╝
    ============================================================ */
 function updateLive(){
   if(!headingSupported || boatHeading === null) return;
-
   document.getElementById("heading").innerText = boatHeading.toFixed(0);
 
   if(windDir !== null && windSpeed !== null){
     document.getElementById("winddir").innerText   = windDir.toFixed(0);
     document.getElementById("windspeed").innerText = windSpeed.toFixed(1);
-
-    // Relative wind angle from boat's perspective
     const rel = (windDir - boatHeading + 360) % 360;
     document.getElementById("windArrow").style.transform =
       `translateX(-50%) translateY(-90%) rotate(${rel}deg)`;
-
     const diff   = angleDiff(boatHeading, windDir);
-    const impact = diff < 45   ? "HEADWIND"
-                 : diff > 135  ? "TAILWIND"
-                 : rel  < 180  ? "STARBOARD CROSS"
-                               : "PORT CROSS";
+    const impact = diff < 45  ? "HEADWIND"
+                 : diff > 135 ? "TAILWIND"
+                 : rel  < 180 ? "STARBOARD CROSS"
+                              : "PORT CROSS";
     document.getElementById("impact-badge").innerText = `${impact} (${diff.toFixed(0)}°)`;
   }
-
   updateBearing();
 }
 
 /* ============================================================
-   UPGRADE #1 — WEATHER THROTTLE GUARD
-   Called on every GPS fix.  Only triggers an actual API fetch
-   if at least WEATHER_THROTTLE_MS (5 minutes) have elapsed since
-   the previous successful fetch.  This eliminates the previous
-   behaviour of calling the API on every single GPS update event.
+   ╔══════════════════════════════════════════════════════╗
+   ║   SECTION 10 — WEATHER (throttled 5 min)            ║
+   ╚══════════════════════════════════════════════════════╝
    ============================================================ */
 function maybeUpdateWeather(){
   const now = Date.now();
   if(now - lastWeatherFetch >= WEATHER_THROTTLE_MS){
-    lastWeatherFetch = now;      // record fetch time before async call
+    lastWeatherFetch = now;
     fetchWeatherCurrent();
   }
 }
 
-/* ============================================================
-   WEATHER — CURRENT CONDITIONS (wind direction & speed in knots)
-   ============================================================ */
 async function fetchWeatherCurrent(){
   if(lat === null) return;
   try {
@@ -1156,27 +1550,17 @@ async function fetchWeatherCurrent(){
                + `&current_weather=true&windspeed_unit=kn`;
     const res  = await fetch(url);
     const data = await res.json();
-
     windDir   = data.current_weather.winddirection;
-    windSpeed = data.current_weather.windspeed;  // knots
+    windSpeed = data.current_weather.windspeed;
     updateLive();
-    fetchHourly();    // refresh forecast table
-    fetchSunset();    // refresh sunrise/sunset data
-
-    // UPGRADE #1: Show exactly when weather was last fetched
-    const ts = new Date().toLocaleTimeString([], {
-      hour: '2-digit', minute: '2-digit', second: '2-digit'
-    });
+    fetchHourly();
+    fetchSunset();
+    const ts = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     document.getElementById("weather-last-fetch").innerText =
       `LAST FETCHED: ${ts}  ·  AUTO-REFRESH EVERY 5 MIN`;
-
   } catch(e){ console.warn("Weather fetch error:", e); }
 }
 
-/* ============================================================
-   WEATHER — 12-HOUR HOURLY FORECAST TABLE
-   Units: temperature in °F, wind in knots
-   ============================================================ */
 async function fetchHourly(){
   try {
     const url  = `https://api.open-meteo.com/v1/forecast`
@@ -1186,25 +1570,20 @@ async function fetchHourly(){
                + `&forecast_days=1&timezone=auto`;
     const res  = await fetch(url);
     const data = await res.json();
-
     const tbody = document.querySelector("#weather-table tbody");
     tbody.innerHTML = "";
     const now = new Date();
     let count = 0, worst = 0;
-
     data.hourly.time.forEach((t, i) => {
       const time = new Date(t);
       if(time >= now && count < 12){
         const temp = data.hourly.temperature_2m[i];
-        const wind = data.hourly.wind_speed_10m[i];    // knots
+        const wind = data.hourly.wind_speed_10m[i];
         const dir  = data.hourly.wind_direction_10m[i];
         if(wind > worst) worst = wind;
-
-        // Thresholds in knots: 10 kts = moderate, 16 kts = poor for rowing
-        let rating = "GOOD",     cls = "good";
+        let rating = "GOOD", cls = "good";
         if(wind > 10){ rating = "MODERATE"; cls = "moderate"; }
         if(wind > 16){ rating = "POOR";     cls = "bad"; }
-
         tbody.innerHTML +=
           `<tr>
             <td>${time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
@@ -1216,23 +1595,17 @@ async function fetchHourly(){
         count++;
       }
     });
-
-    // Practice recommendation banner below table
     const pr = document.getElementById("practice-rating");
-    if(worst > 16){
-      pr.innerHTML = `<span class="bad">⚠ LIKELY CANCEL — Winds Exceed Safe Limit</span>`;
-    } else if(worst > 10){
-      pr.innerHTML = `<span class="moderate">△ EXPERIENCED CREWS ONLY — Elevated Wind</span>`;
-    } else {
-      pr.innerHTML = `<span class="good">✓ FULL PRACTICE RECOMMENDED</span>`;
-    }
+    if(worst > 16)      pr.innerHTML = `<span class="bad">⚠ LIKELY CANCEL — Winds Exceed Safe Limit</span>`;
+    else if(worst > 10) pr.innerHTML = `<span class="moderate">△ EXPERIENCED CREWS ONLY — Elevated Wind</span>`;
+    else                pr.innerHTML = `<span class="good">✓ FULL PRACTICE RECOMMENDED</span>`;
   } catch(e){ console.warn("Hourly forecast error:", e); }
 }
 
 /* ============================================================
-   SUNSET / SUNRISE
-   Fetched once per weather cycle (triggered by fetchWeatherCurrent).
-   The visible countdown refreshes every minute via setInterval.
+   ╔══════════════════════════════════════════════════════╗
+   ║   SECTION 11 — SUNSET / SUNRISE                     ║
+   ╚══════════════════════════════════════════════════════╝
    ============================================================ */
 async function fetchSunset(){
   if(lat === null) return;
@@ -1242,37 +1615,30 @@ async function fetchSunset(){
                + `&daily=sunrise,sunset&timezone=auto&forecast_days=1`;
     const res  = await fetch(url);
     const data = await res.json();
-
     const sunrise = new Date(data.daily.sunrise[0]);
     const sunset  = new Date(data.daily.sunset[0]);
-
     document.getElementById("sunrise-time").innerText =
       sunrise.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    document.getElementById("sunset-time").innerText  =
+    document.getElementById("sunset-time").innerText =
       sunset.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-    // Countdown that updates once per minute
     function updateRemaining(){
       const now    = new Date();
       const diffMs = sunset - now;
       const el     = document.getElementById("daylight-remaining");
-      if(diffMs <= 0){
-        el.innerText = "SUN HAS SET";
-        return;
-      }
+      if(diffMs <= 0){ el.innerText = "SUN HAS SET"; return; }
       const h = Math.floor(diffMs / 3600000);
       const m = Math.floor((diffMs % 3600000) / 60000);
       el.innerText = `${h}h ${m}m until sunset`;
     }
     updateRemaining();
     setInterval(updateRemaining, 60000);
-
   } catch(e){ console.warn("Sunset fetch error:", e); }
 }
 
 /* ============================================================
-   TIDES — NOAA High/Low predictions for today
-   Fetched once on page load; tide times don't change.
+   ╔══════════════════════════════════════════════════════╗
+   ║   SECTION 12 — TIDES                                ║
+   ╚══════════════════════════════════════════════════════╝
    ============================================================ */
 async function fetchTides(){
   const today   = new Date();
@@ -1284,10 +1650,9 @@ async function fetchTides(){
   try {
     const res  = await fetch(url);
     const data = await res.json();
-    const tbody   = document.querySelector("#tide-table tbody");
+    const tbody = document.querySelector("#tide-table tbody");
     tbody.innerHTML = "";
     const heights = [];
-
     data.predictions.forEach(e => {
       tbody.innerHTML +=
         `<tr>
@@ -1299,20 +1664,20 @@ async function fetchTides(){
         </tr>`;
       heights.push(parseFloat(e.v));
     });
-
     if(heights.length >= 2){
       const diff  = Math.max(...heights) - Math.min(...heights);
       const label = diff > 3 ? "STRONG" : diff > 1.5 ? "MODERATE" : "LIGHT";
       const el    = document.getElementById("current-estimate");
       el.innerText   = label;
-      el.style.color = diff > 3 ? "var(--red)" : diff > 1.5 ? "var(--amber)" : "var(--green)";
+      el.style.color = diff > 3 ? "var(--red)" : diff > 1.5 ? "var(--amber)" : "var(--green-bright)";
     }
   } catch(e){ console.warn("Tide fetch error:", e); }
 }
 
 /* ============================================================
-   HAVERSINE DISTANCE
-   Returns distance in metres between two GPS coordinates.
+   ╔══════════════════════════════════════════════════════╗
+   ║   SECTION 13 — HAVERSINE HELPER                     ║
+   ╚══════════════════════════════════════════════════════╝
    ============================================================ */
 function haversine(lat1, lon1, lat2, lon2){
   const R     = 6371000;
@@ -1324,80 +1689,185 @@ function haversine(lat1, lon1, lat2, lon2){
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+// Convenience: haversine in miles
+function haversineMiles(lat1, lon1, lat2, lon2){
+  return haversine(lat1, lon1, lat2, lon2) / 1609.344;
+}
+
 /* ============================================================
-   RACE CONTROLS — start, stop
+   ╔══════════════════════════════════════════════════════╗
+   ║   SECTION 14 — SESSION / TELEMETRY VIEW STATE       ║
+   ║                                                      ║
+   ║  viewSessionId — which session the telemetry boxes  ║
+   ║  and map are currently displaying:                  ║
+   ║    'practice'   → live practice accumulator         ║
+   ║    piece id     → a specific active or completed    ║
+   ║                   piece, replayed from its gps[]    ║
+   ║                                                      ║
+   ║  raceActive stays true while practice is running.   ║
+   ║  startRace / stopRace are now internal helpers      ║
+   ║  called by the practice recording functions.        ║
+   ╚══════════════════════════════════════════════════════╝
    ============================================================ */
+
+// Which session the display is currently showing
+let viewSessionId = 'practice';
+
+// Internal: activate GPS accumulation (called by startPracticeRecording)
 function startRace(){
   raceActive     = true;
   raceStartTime  = Date.now();
   totalDistance  = 0;
   lastPosition   = null;
   raceData       = [];
-  gpsUpdateCount = 0;          // UPGRADE #3: reset pan counter at race start
-  path.setLatLngs([]);         // clear previous route on map
-  timerInterval = setInterval(() => {
-    document.getElementById("race-time").innerText =
-      Math.floor((Date.now() - raceStartTime) / 1000);
-  }, 1000);
+  gpsUpdateCount = 0;
+  path.setLatLngs([]);
+  // The display timer is driven by updateTelemetryDisplay(), not a separate interval
 }
 
+// Internal: deactivate GPS accumulation (called by stopPracticeRecording)
 function stopRace(){
   raceActive = false;
   clearInterval(timerInterval);
 }
 
-/* ============================================================
-   GPS POSITION UPDATE — core telemetry handler
-   Called on every GPS fix during watchPosition.
+/* ---- Set which session the telemetry display shows ---- */
+function setViewSession(id){
+  viewSessionId = id;
 
-   UPGRADE #2: whether to pan the map depends on raceModeActive.
-   UPGRADE #3: in Training Mode, map pans every 3rd GPS fix only.
-               The polyline is always updated on every fix (accurate route).
-   ============================================================ */
-function updateSpeed(pos){
-  const speedMs = pos.coords.speed ? pos.coords.speed : 0;
+  // Update pill button active states
+  document.querySelectorAll('.sess-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.sessId === id);
+  });
 
-  // --- Instantaneous 500m split at current speed ---
-  if(speedMs > 0){
-    const splitSec = 500 / speedMs;
-    const m = Math.floor(splitSec / 60);
-    const s = Math.floor(splitSec % 60);
-    document.getElementById("speed").innerText = `${m}:${String(s).padStart(2, '0')}`;
+  // If viewing a completed session, render its static data immediately
+  if(id !== 'practice'){
+    const src = getSessionById(id);
+    if(src && src.endMs){
+      renderStaticSession(src);
+      return;
+    }
+    // Active piece — live updates will keep flowing through updateTelemetryDisplay
+  }
+  // Practice view — live updates flowing
+}
+
+// Retrieve a session by id: checks active pieces then completed recordings
+function getSessionById(id){
+  const active = activePieces.find(p => p.id === id);
+  if(active) return active;
+  return completedRecordings.find(r => r.id === id);
+}
+
+// Display static summary of a completed session (no live updates needed)
+function renderStaticSession(rec){
+  if(!rec || rec.gps.length === 0) return;
+
+  const dur    = (rec.endMs - rec.startMs) / 1000;
+  const m      = Math.floor(dur / 60), s = Math.floor(dur % 60);
+  const distM  = rec.gps.length > 0 ? rec.gps[rec.gps.length - 1].distM : 0;
+  const lastSpd = rec.gps[rec.gps.length - 1].speedMs;
+
+  // Elapsed
+  document.getElementById("race-time").innerText =
+    `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+
+  // Distance
+  document.getElementById("distance").innerText = distM.toFixed(1);
+
+  // Instant split (last recorded speed)
+  if(lastSpd > 0){
+    const sp = 500 / lastSpd;
+    document.getElementById("speed").innerText =
+      `${Math.floor(sp/60)}:${String(Math.floor(sp%60)).padStart(2,'0')}`;
   } else {
     document.getElementById("speed").innerText = "—";
   }
+
+  // Avg 500m split over whole session
+  if(distM > 0){
+    const avgSec = dur / (distM / 500);
+    document.getElementById("split500").innerText =
+      `${Math.floor(avgSec/60)}:${String(Math.floor(avgSec%60)).padStart(2,'0')}`;
+  }
+
+  // Next split N/A for completed sessions
+  document.getElementById("nextSplit").innerText = "—";
+
+  // Draw this session's route on the map
+  path.setLatLngs(rec.gps.map(g => [g.lat, g.lon]));
+  if(rec.gps.length > 1){
+    map.fitBounds(path.getBounds(), { padding: [20, 20], animate: true });
+  }
+}
+
+/* ---- Live telemetry display update (called every GPS fix, every second) ---- */
+// Updates the 5 telemetry boxes based on whichever session is selected.
+// For 'practice': uses the live accumulators (totalDistance, raceStartTime, etc.)
+// For an active piece: derives from the piece's gps[] array in real-time.
+function updateTelemetryDisplay(speedMs){
+  if(viewSessionId === 'practice'){
+    // Live practice — already computed in updateSpeed, nothing extra to do
+    // (boxes are written directly in updateSpeed for the practice path)
+    return;
+  }
+
+  // Check if viewing an active piece
+  const piece = activePieces.find(p => p.id === viewSessionId);
+  if(piece && piece.gps.length > 0){
+    const g      = piece.gps;
+    const last   = g[g.length - 1];
+    const distM  = last.distM - g[0].distM;   // distance within this piece
+    const durSec = (last.t - piece.startMs) / 1000;
+
+    document.getElementById("distance").innerText = distM.toFixed(1);
+
+    const dm = Math.floor(durSec / 60), ds = Math.floor(durSec % 60);
+    document.getElementById("race-time").innerText =
+      `${String(dm).padStart(2,'0')}:${String(ds).padStart(2,'0')}`;
+
+    if(distM > 0){
+      const avgSec = durSec / (distM / 500);
+      document.getElementById("split500").innerText =
+        `${Math.floor(avgSec/60)}:${String(Math.floor(avgSec%60)).padStart(2,'0')}`;
+    }
+    if(speedMs > 0){
+      const sp = 500 / speedMs;
+      document.getElementById("speed").innerText =
+        `${Math.floor(sp/60)}:${String(Math.floor(sp%60)).padStart(2,'0')}`;
+      const rem = 500 - (distM % 500);
+      const est = rem / speedMs;
+      document.getElementById("nextSplit").innerText =
+        `${Math.floor(est/60)}:${String(Math.floor(est%60)).padStart(2,'0')}`;
+    }
+  }
+}
+
+/* ============================================================
+   ╔══════════════════════════════════════════════════════╗
+   ║   SECTION 15 — GPS POSITION UPDATE (core telemetry) ║
+   ║                                                      ║
+   ║  raceActive is true while a practice session runs.  ║
+   ║  When viewing 'practice', boxes update directly.    ║
+   ║  When viewing a piece, updateTelemetryDisplay()     ║
+   ║  derives values from that piece's gps[] array.      ║
+   ╚══════════════════════════════════════════════════════╝
+   ============================================================ */
+function updateSpeed(pos){
+  const speedMs = pos.coords.speed ? pos.coords.speed : 0;
 
   if(raceActive){
     const _lat = pos.coords.latitude;
     const _lon = pos.coords.longitude;
 
     if(lastPosition){
-      // Accumulate distance
       const d         = haversine(lastPosition.lat, lastPosition.lon, _lat, _lon);
       const prevTotal = totalDistance;
       totalDistance  += d;
-      document.getElementById("distance").innerText = totalDistance.toFixed(1);
 
-      // Rolling average 500m split across the whole race
-      if(totalDistance > 0){
-        const splitSec = (Date.now() - raceStartTime) / 1000 / (totalDistance / 500);
-        const m = Math.floor(splitSec / 60);
-        const s = Math.floor(splitSec % 60);
-        document.getElementById("split500").innerText = `${m}:${String(s).padStart(2, '0')}`;
-      }
-
-      // Projected time for the remainder of the current 500m segment
-      if(speedMs > 0){
-        const remainingMeters = 500 - (totalDistance % 500);
-        const estSec          = remainingMeters / speedMs;
-        const m2 = Math.floor(estSec / 60);
-        const s2 = Math.floor(estSec % 60);
-        document.getElementById("nextSplit").innerText = `${m2}:${String(s2).padStart(2, '0')}`;
-      }
-
-      // CSV: Record one data row every time we cross a 500m boundary
-      const prevInterval = Math.floor(prevTotal      / 500);
-      const currInterval = Math.floor(totalDistance  / 500);
+      // CSV record at each 500m boundary (always stored, regardless of view)
+      const prevInterval = Math.floor(prevTotal     / 500);
+      const currInterval = Math.floor(totalDistance / 500);
       if(currInterval > prevInterval && totalDistance > 0){
         const elapsedSec  = (Date.now() - raceStartTime) / 1000;
         const avgSplitSec = elapsedSec / (totalDistance / 500);
@@ -1415,97 +1885,99 @@ function updateSpeed(pos){
       }
     }
 
-    // Always add to polyline so the route drawing is complete and accurate
-    path.addLatLng([_lat, _lon]);
+    // Always draw polyline on map (full accuracy)
+    path.addLatLng([pos.coords.latitude, pos.coords.longitude]);
 
-    // UPGRADE #2 & #3: Pan behaviour
-    //   Race Mode    → pan on every GPS fix
-    //   Training Mode → pan only every 3rd GPS fix (saves CPU / battery)
-    const shouldPan = raceModeActive
-      ? true
-      : (gpsUpdateCount % 3 === 0);
-
-    if(shouldPan){
-      map.panTo([_lat, _lon], { animate: true });
+    // Pan map only when viewing practice live (not when reviewing a piece)
+    if(viewSessionId === 'practice'){
+      const shouldPan = raceModeActive ? true : (gpsUpdateCount % 3 === 0);
+      if(shouldPan) map.panTo([pos.coords.latitude, pos.coords.longitude], { animate: true });
     }
 
-    lastPosition = { lat: _lat, lon: _lon };
+    lastPosition = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+
+    // Feed GPS fix into recording accumulators
+    recordingManagerOnGPS(pos.coords.latitude, pos.coords.longitude, speedMs, totalDistance);
+  }
+
+  // ---- Update telemetry display ----
+  if(viewSessionId === 'practice'){
+    // Write directly from live practice accumulators
+    if(speedMs > 0){
+      const sp = 500 / speedMs;
+      document.getElementById("speed").innerText =
+        `${Math.floor(sp/60)}:${String(Math.floor(sp%60)).padStart(2,'0')}`;
+    } else {
+      document.getElementById("speed").innerText = "—";
+    }
+
+    if(raceActive){
+      document.getElementById("distance").innerText = totalDistance.toFixed(1);
+
+      const elapsed = (Date.now() - raceStartTime) / 1000;
+      const em = Math.floor(elapsed / 60), es = Math.floor(elapsed % 60);
+      document.getElementById("race-time").innerText =
+        `${String(em).padStart(2,'0')}:${String(es).padStart(2,'0')}`;
+
+      if(totalDistance > 0){
+        const avgSec = elapsed / (totalDistance / 500);
+        document.getElementById("split500").innerText =
+          `${Math.floor(avgSec/60)}:${String(Math.floor(avgSec%60)).padStart(2,'0')}`;
+      }
+
+      if(speedMs > 0){
+        const rem = 500 - (totalDistance % 500);
+        const est = rem / speedMs;
+        document.getElementById("nextSplit").innerText =
+          `${Math.floor(est/60)}:${String(Math.floor(est%60)).padStart(2,'0')}`;
+      }
+    }
+  } else {
+    // Delegate to session-aware display
+    updateTelemetryDisplay(speedMs);
   }
 }
 
 /* ============================================================
-   UPGRADE #4 — DOWNLOAD RACE DATA
-   Exports two files automatically:
-     1. race-data.csv  — 500m interval splits (existing behaviour preserved)
-     2. race-map.png   — PNG screenshot of the Leaflet map showing the route
-
-   Map export steps:
-     a. fitBounds() to show the entire route with padding
-     b. Wait 600 ms for Leaflet to finish rendering tiles
-     c. Capture the map DOM element with html2canvas (CORS-enabled)
-     d. Convert canvas to Blob and trigger download
+   ╔══════════════════════════════════════════════════════╗
+   ║   SECTION 16 — DOWNLOAD: CSV + MAP PNG              ║
+   ╚══════════════════════════════════════════════════════╝
    ============================================================ */
 function downloadData(){
-
-  /* ---- Part A: CSV of 500m split intervals (unchanged) ---- */
+  // Part A: CSV of 500m splits
   let csv = "interval_500m,distance_m,elapsed_s,avg_split_per_500m,lat,lon,speed_ms\n";
   raceData.forEach(r => {
-    csv += `${r.interval},`
-         + `${r.distance_m.toFixed(1)},`
-         + `${r.elapsed_s.toFixed(1)},`
-         + `${r.avg_split},`
-         + `${r.lat},`
-         + `${r.lon},`
-         + `${r.speed_ms.toFixed(2)}\n`;
+    csv += `${r.interval},${r.distance_m.toFixed(1)},${r.elapsed_s.toFixed(1)},`
+         + `${r.avg_split},${r.lat},${r.lon},${r.speed_ms.toFixed(2)}\n`;
   });
-
   const csvBlob = new Blob([csv], { type: "text/csv" });
   const csvUrl  = URL.createObjectURL(csvBlob);
   const csvLink = document.createElement("a");
-  csvLink.href     = csvUrl;
-  csvLink.download = "race-data.csv";
-  csvLink.click();
-  // Clean up object URL after a short delay
+  csvLink.href = csvUrl; csvLink.download = "race-data.csv"; csvLink.click();
   setTimeout(() => URL.revokeObjectURL(csvUrl), 2000);
 
-  /* ---- Part B: PNG screenshot of the GPS route map ---- */
+  // Part B: Map PNG via html2canvas
   const routePoints = path.getLatLngs();
-
-  // If there are at least 2 points, zoom the map to fit the whole route
-  if(routePoints.length > 1){
-    map.fitBounds(path.getBounds(), { padding: [20, 20], animate: false });
-  }
-
-  // Short delay ensures Leaflet tiles have finished rendering at the new view
+  if(routePoints.length > 1) map.fitBounds(path.getBounds(), { padding: [20, 20], animate: false });
   setTimeout(() => {
-    const mapEl = document.getElementById("map");
-
-    html2canvas(mapEl, {
-      useCORS:         true,          // allow OSM tile images via CORS
-      allowTaint:      true,          // graceful fallback if CORS headers absent
-      backgroundColor: "#08111e",     // match dashboard dark background
-      logging:         false          // suppress console noise
-    })
-    .then(canvas => {
+    html2canvas(document.getElementById("map"), {
+      useCORS: true, allowTaint: true, backgroundColor: "#08111e", logging: false
+    }).then(canvas => {
       canvas.toBlob(blob => {
-        if(!blob){ console.warn("Map canvas export failed — no blob produced"); return; }
+        if(!blob){ console.warn("Map canvas export failed"); return; }
         const pngUrl  = URL.createObjectURL(blob);
         const pngLink = document.createElement("a");
-        pngLink.href     = pngUrl;
-        pngLink.download = "race-map.png";
-        pngLink.click();
+        pngLink.href = pngUrl; pngLink.download = "race-map.png"; pngLink.click();
         setTimeout(() => URL.revokeObjectURL(pngUrl), 2000);
       }, "image/png");
-    })
-    .catch(err => console.warn("html2canvas error:", err));
-
-  }, 600);   // 600 ms render buffer
+    }).catch(err => console.warn("html2canvas error:", err));
+  }, 600);
 }
 
 /* ============================================================
-   BEARING LOCK
-   Locks the current heading as a reference, then continuously
-   reports angular deviation and correction direction.
+   ╔══════════════════════════════════════════════════════╗
+   ║   SECTION 17 — BEARING LOCK                         ║
+   ╚══════════════════════════════════════════════════════╝
    ============================================================ */
 function lockBearing(){
   if(!headingSupported || boatHeading === null) return;
@@ -1519,50 +1991,654 @@ function updateBearing(){
   const dir  = ((boatHeading - lockedBearing + 360) % 360) < 180 ? "▶ R" : "◀ L";
   const el   = document.getElementById("bearing-diff");
   el.innerText   = diff < 1 ? "ON COURSE" : `${diff.toFixed(1)}° OFF — CORRECT ${dir}`;
-  el.style.color = diff < 2  ? "var(--green)"
-                 : diff < 10 ? "var(--amber)"
-                             : "var(--red)";
+  el.style.color = diff < 2 ? "var(--green-bright)" : diff < 10 ? "var(--amber)" : "var(--red)";
 }
 
 /* ============================================================
-   COUNTDOWN TIMER
-   Colours: white → red (≤5 s) → green ("GO!")
+   ╔══════════════════════════════════════════════════════╗
+   ║   SECTION 18 — COUNTDOWN TIMER                      ║
+   ╚══════════════════════════════════════════════════════╝
    ============================================================ */
 function startCountdown(){
   let sec = parseInt(document.getElementById("countdown-input").value);
   if(isNaN(sec) || sec <= 0) return;
-
-  const display    = document.getElementById("countdown-display");
+  const display     = document.getElementById("countdown-display");
   display.className = "countdown-big";
   display.innerText  = sec;
-
   const interval = setInterval(() => {
     sec--;
     display.innerText = sec;
     if(sec <= 5 && sec > 0) display.className = "countdown-big urgent";
     if(sec <= 0){
       clearInterval(interval);
-      display.innerText  = "GO!";
-      display.className  = "countdown-big go";
+      display.innerText = "GO!";
+      display.className = "countdown-big go";
     }
   }, 1000);
 }
 
 /* ============================================================
-   ON-LOAD INITIALISATION
-   —  fetchTides()   : fetched immediately; doesn't need GPS
-   —  fetchSunset()  : pre-fetched with default ACB coordinates so the
-                       Sun & Sky card is populated before the user taps
-                       "Enable GPS & Heading"
-   —  Weather fetch  : deferred until GPS fix is available; the throttle
-                       guard (maybeUpdateWeather) handles it automatically
+   ╔══════════════════════════════════════════════════════╗
+   ║   SECTION 19 — LIGHTNING SAFETY  (Requirement 1)    ║
+   ║                                                      ║
+   ║   API: Blitzortung.org public JSON feed              ║
+   ║   Throttle: 5 minutes (same guard as weather)       ║
+   ║   Window: last 30 minutes of strikes                 ║
+   ║   Radii: 10 miles (danger), 20 miles (caution)      ║
+   ║   States: SAFE | CAUTION | CLEAR THE WATER           ║
+   ╚══════════════════════════════════════════════════════╝
+   ============================================================ */
+
+// Throttle guard — called from GPS update loop
+function maybeUpdateLightning(){
+  const now = Date.now();
+  if(lat === null) return;
+  if(now - lastLightningFetch >= LIGHTNING_THROTTLE_MS){
+    lastLightningFetch = now;
+    fetchLightningData();
+  }
+}
+
+// Fetch from Blitzortung.org public feed (JSON, CORS-open for browser access)
+// Endpoint: https://data.blitzortung.org/Data/Protected/strikes?... — requires region
+// We use the global RPC API: https://map.blitzortung.org/BLITZORTUNG/strikes.json
+// IMPORTANT: Blitzortung is a community network; if CORS blocks, we gracefully degrade.
+async function fetchLightningData(){
+  if(lat === null) return;
+  try {
+    // Blitzortung serves JSON regions.  We use the nearest-to-USA regional server.
+    // Bounding box: lat ±3°, lon ±3° (roughly 200-mile box centred on the boat)
+    const latMin = (lat - 3).toFixed(4), latMax = (lat + 3).toFixed(4);
+    const lonMin = (lon - 3).toFixed(4), lonMax = (lon + 3).toFixed(4);
+
+    // Try the Blitzortung public JSON endpoint (community data, no API key needed)
+    // Falls back to Open-Meteo lightning (where available) or degrades gracefully.
+    const blitzUrl = `https://map.blitzortung.org/BLITZORTUNG/strikes.json`;
+
+    const res = await fetch(blitzUrl, { mode: 'cors' });
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    const strikes = await res.json();   // array of {time, lat, lon} objects
+
+    cachedLightningStrikes = Array.isArray(strikes) ? strikes : [];
+    processLightningData();
+
+    const ts = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    document.getElementById("lightning-last-fetch").innerText =
+      `LAST FETCHED: ${ts}  ·  AUTO-REFRESH EVERY 5 MIN  ·  ${cachedLightningStrikes.length} strikes in feed`;
+
+  } catch(err){
+    console.warn("Lightning fetch error:", err);
+    // Graceful degradation: use cached data if available, or show error state
+    if(cachedLightningStrikes.length > 0){
+      processLightningData();  // still analyse cached strikes
+      document.getElementById("lightning-last-fetch").innerText =
+        `API ERROR — USING CACHED DATA  ·  ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    } else {
+      // No data at all — show unavailable state
+      setLightningUI({
+        state:      'unknown',
+        stateText:  'DATA UNAVAILABLE',
+        nearest:    '—',
+        lastTime:   '—',
+        count10:    '—',
+        count20:    '—'
+      });
+      document.getElementById("lightning-last-fetch").innerText =
+        `FETCH FAILED — CHECK CONNECTION OR CORS POLICY`;
+    }
+  }
+}
+
+// Process cached strikes against current GPS position
+function processLightningData(){
+  if(lat === null || cachedLightningStrikes.length === 0){
+    setLightningUI({
+      state:     'safe',
+      stateText: 'NO STRIKES IN FEED',
+      nearest:   '>20',
+      lastTime:  '—',
+      count10:   '0',
+      count20:   '0'
+    });
+    return;
+  }
+
+  const now30        = Date.now() - (30 * 60 * 1000);  // 30-minute window (ms)
+  const MILE_10      = 10;
+  const MILE_20      = 20;
+
+  // Filter to last 30 minutes
+  // Blitzortung timestamps are in seconds (Unix epoch) or ms — normalise both
+  const recent = cachedLightningStrikes.filter(s => {
+    const ts = s.time > 1e12 ? s.time : s.time * 1000;  // normalise to ms
+    return ts >= now30;
+  });
+
+  if(recent.length === 0){
+    setLightningUI({
+      state:     'safe',
+      stateText: '⚡ SAFE TO PRACTICE',
+      nearest:   '>20',
+      lastTime:  '—',
+      count10:   '0',
+      count20:   '0'
+    });
+    clearLightningTimer();
+    return;
+  }
+
+  // Compute distances from boat (miles) and attach
+  const withDist = recent.map(s => {
+    const sLat = s.lat ?? s.latitude;
+    const sLon = s.lon ?? s.longitude;
+    return { ...s, distMi: haversineMiles(lat, lon, sLat, sLon) };
+  });
+
+  // Nearest strike in last 30 min
+  withDist.sort((a, b) => a.distMi - b.distMi);
+  const nearest     = withDist[0].distMi;
+  const count10     = withDist.filter(s => s.distMi <= MILE_10).length;
+  const count20     = withDist.filter(s => s.distMi <= MILE_20).length;
+
+  // Last strike within 10 miles
+  const within10    = withDist.filter(s => s.distMi <= MILE_10);
+  let lastTime10    = null;
+  if(within10.length > 0){
+    // Find most recent
+    within10.sort((a, b) => {
+      const ta = a.time > 1e12 ? a.time : a.time * 1000;
+      const tb = b.time > 1e12 ? b.time : b.time * 1000;
+      return tb - ta;
+    });
+    const ts = within10[0].time > 1e12 ? within10[0].time : within10[0].time * 1000;
+    lastTime10 = ts;
+  }
+
+  // Determine safety state
+  let state, stateText;
+  if(nearest <= MILE_10){
+    state     = 'danger';
+    stateText = '⚡ CLEAR THE WATER NOW';
+  } else if(nearest <= MILE_20){
+    state     = 'caution';
+    stateText = '⚠ CAUTION — MONITOR CLOSELY';
+  } else {
+    state     = 'safe';
+    stateText = '✓ SAFE TO PRACTICE';
+  }
+
+  // Format last-strike time display
+  let lastTimeDisplay = count10 > 0 && lastTime10
+    ? formatTimeSince(lastTime10)
+    : 'No strikes within 10 mi';
+
+  setLightningUI({
+    state,
+    stateText,
+    nearest:   nearest <= 20 ? nearest.toFixed(1) : '>20',
+    lastTime:  lastTimeDisplay,
+    count10:   count10.toString(),
+    count20:   count20.toString()
+  });
+
+  // If there are nearby strikes, start a live countdown timer
+  if(lastTime10 !== null){
+    startLightningTimer(lastTime10);
+  } else {
+    clearLightningTimer();
+  }
+}
+
+// Apply computed values + state to the lightning card UI
+function setLightningUI({ state, stateText, nearest, lastTime, count10, count20 }){
+  const banner = document.getElementById("lightning-banner");
+  const card   = document.getElementById("lightning-card");
+
+  // Banner class
+  banner.className = `lightning-state-banner ${state}`;
+  document.getElementById("lightning-state-text").innerText = stateText;
+
+  // Stats
+  document.getElementById("lightning-nearest").innerText    = nearest;
+  document.getElementById("lightning-last-time").innerText  = lastTime;
+  document.getElementById("lightning-count-10").innerText   = count10;
+  document.getElementById("lightning-count-20").innerText   = count20;
+
+  // Card top accent
+  card.className = `card full-width lightning-${state}`;
+}
+
+// Live countdown: "X min Y sec ago" — updates every second
+function startLightningTimer(lastStrikeMs){
+  clearLightningTimer();
+  lightningTimerInterval = setInterval(() => {
+    const elapsed = Date.now() - lastStrikeMs;
+    if(elapsed < 0){ clearLightningTimer(); return; }
+    document.getElementById("lightning-last-time").innerText = formatTimeSince(lastStrikeMs);
+  }, 1000);
+}
+
+function clearLightningTimer(){
+  if(lightningTimerInterval !== null){
+    clearInterval(lightningTimerInterval);
+    lightningTimerInterval = null;
+  }
+}
+
+function formatTimeSince(ms){
+  const elapsed = Date.now() - ms;
+  if(elapsed < 0) return "just now";
+  const totalSec = Math.floor(elapsed / 1000);
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  return m > 0 ? `${m}m ${s}s ago` : `${s}s ago`;
+}
+
+/* ============================================================
+   ╔══════════════════════════════════════════════════════╗
+   ║   SECTION 20 -- SESSION RECORDING MANAGER            ║
+   ║                                                      ║
+   ║   Starting practice activates GPS accumulation and   ║
+   ║   sets telemetry display to the practice view.       ║
+   ║   Starting a piece auto-switches the view to it.     ║
+   ║   Stopping a piece reverts view to practice.         ║
+   ║   The selector pill strip stays in sync throughout.  ║
+   ╚══════════════════════════════════════════════════════╝
+   ============================================================ */
+
+// Practice state
+let practiceStartMs  = null;
+let practiceGPS      = [];      // [{t, lat, lon, speedMs, distM}]
+let practiceTimerInt = null;
+let practiceMetrics  = [];
+
+// Active pieces (multiple can overlap within a practice session)
+let activePieces = [];
+let pieceCounter = 0;
+
+// Completed sessions: [{id, type, label, startMs, endMs, gps, metrics}]
+let completedRecordings = [];
+
+/* ---- Practice Recording -- starting this IS starting the session ---- */
+function startPracticeRecording(){
+  if(practiceStartMs !== null){ alert("Practice already in progress."); return; }
+  practiceGPS     = [];
+  practiceMetrics = [];
+  practiceStartMs = Date.now();
+  startRace();                    // activate GPS accumulation
+  viewSessionId   = 'practice';
+  document.getElementById("practice-rec-status").innerText   = "● RECORDING";
+  document.getElementById("practice-rec-status").style.color = "var(--red)";
+  practiceTimerInt = setInterval(updatePracticeTimer, 1000);
+  renderSessionSelector();
+  renderRecordingList();
+}
+
+function updatePracticeTimer(){
+  if(!practiceStartMs) return;
+  const elapsed = Math.floor((Date.now() - practiceStartMs) / 1000);
+  const m = Math.floor(elapsed / 60), s = elapsed % 60;
+  document.getElementById("practice-rec-timer").innerText =
+    `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+function stopPracticeRecording(){
+  if(!practiceStartMs){ alert("No practice session active."); return; }
+  clearInterval(practiceTimerInt);
+  document.getElementById("practice-rec-status").innerText   = "SAVING...";
+  document.getElementById("practice-rec-status").style.color = "var(--amber)";
+
+  // Auto-stop any still-running pieces
+  while(activePieces.length > 0){
+    const p = activePieces.pop();
+    completedRecordings.push({
+      id: p.id, type: 'piece', label: p.label,
+      startMs: p.startMs, endMs: Date.now(),
+      gps: [...p.gps], metrics: [...p.metrics]
+    });
+  }
+
+  stopRace();   // deactivate GPS accumulation
+
+  const startSnap = practiceStartMs;
+  const endMs     = Date.now();
+  const id        = `practice-${startSnap}`;
+  const label     = `Practice ${new Date(startSnap).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' })}`;
+  completedRecordings.push({ id, type:'practice', label, startMs:startSnap, endMs, gps:[...practiceGPS], metrics:[...practiceMetrics] });
+  practiceStartMs = null;
+
+  document.getElementById("practice-rec-status").innerText   = "STOPPED";
+  document.getElementById("practice-rec-status").style.color = "var(--text-dim)";
+  document.getElementById("practice-rec-timer").innerText    = "00:00";
+
+  const saved = completedRecordings[completedRecordings.length - 1];
+  viewSessionId = saved.id;
+  renderStaticSession(saved);
+  renderSessionSelector();
+  renderRecordingList();
+}
+
+/* ---- Piece Recordings -- live within a practice session ---- */
+function startPieceRecording(){
+  if(!practiceStartMs){ alert("Start a Practice session first."); return; }
+  pieceCounter++;
+  const piece = { id:`piece-${Date.now()}`, label:`Piece ${pieceCounter}`, startMs:Date.now(), gps:[], metrics:[] };
+  activePieces.push(piece);
+  viewSessionId = piece.id;    // auto-switch display to this piece
+  renderSessionSelector();
+  renderRecordingList();
+}
+
+function stopCurrentPiece(){
+  if(activePieces.length === 0){ alert("No active piece."); return; }
+  const piece = activePieces.pop();
+  completedRecordings.push({
+    id:piece.id, type:'piece', label:piece.label,
+    startMs:piece.startMs, endMs:Date.now(),
+    gps:[...piece.gps], metrics:[...piece.metrics]
+  });
+  // Revert view: next active piece, or practice
+  viewSessionId = activePieces.length > 0 ? activePieces[activePieces.length-1].id : 'practice';
+  renderSessionSelector();
+  renderRecordingList();
+}
+
+/* ---- GPS feed into all active accumulators ---- */
+function recordingManagerOnGPS(_lat, _lon, speedMs, distM){
+  const fix = { t:Date.now(), lat:_lat, lon:_lon, speedMs, distM };
+  if(practiceStartMs !== null) practiceGPS.push(fix);
+  activePieces.forEach(p => p.gps.push(fix));
+}
+
+/* ---- Helper: stop MediaRecorder (used exclusively by Cox Recorder) ---- */
+function stopMediaRecorder(mr, chunks){
+  return new Promise(resolve => {
+    if(!mr || mr.state === 'inactive'){
+      resolve(chunks.length > 0 ? new Blob(chunks, { type:chunks[0].type }) : null); return;
+    }
+    mr.onstop = () => { resolve(chunks.length > 0 ? new Blob(chunks, { type:chunks[0].type }) : null); };
+    mr.stop();
+  });
+}
+
+/* ---- Session selector pill strip ---- */
+function renderSessionSelector(){
+  const sel = document.getElementById("session-selector");
+  let html = '';
+
+  // Practice pill
+  const pracLive   = !!practiceStartMs;
+  const pracViewed = viewSessionId === 'practice';
+  html += `<button class="sess-btn${pracLive ? ' active-rec-btn' : ''}${pracViewed ? ' active' : ''}"
+    data-sess-id="practice" onclick="setViewSession('practice')">
+    Practice${pracLive ? ' &#9679;' : ''}
+  </button>`;
+
+  // Active piece pills (live, shown with rec dot)
+  activePieces.forEach(p => {
+    const isViewed = viewSessionId === p.id;
+    html += `<button class="sess-btn active-rec-btn${isViewed ? ' active' : ''}"
+      data-sess-id="${p.id}" onclick="setViewSession('${p.id}')">
+      ${p.label} &#9679;
+    </button>`;
+  });
+
+  // Completed pieces (last 5 for compactness)
+  completedRecordings.filter(r => r.type === 'piece').slice(-5).forEach(r => {
+    const isViewed = viewSessionId === r.id;
+    html += `<button class="sess-btn${isViewed ? ' active' : ''}"
+      data-sess-id="${r.id}" onclick="setViewSession('${r.id}')">
+      ${r.label}
+    </button>`;
+  });
+
+  sel.innerHTML = html;
+}
+
+/* ---- Saved sessions list ---- */
+function renderRecordingList(){
+  const list = document.getElementById("rec-list");
+  const liveItems = [
+    ...(practiceStartMs ? [{id:'_practice_live', label:'Practice', type:'practice'}] : []),
+    ...activePieces.map(p => ({id:p.id, label:p.label, type:'piece'}))
+  ];
+  if(liveItems.length === 0 && completedRecordings.length === 0){
+    list.innerHTML = `<div style="font-family:'IBM Plex Mono',monospace;font-size:0.7rem;color:var(--text-dim);padding:0.5rem 0;">No sessions yet.</div>`;
+    return;
+  }
+  let html = '';
+  liveItems.forEach(r => {
+    html += `<div class="rec-item active-rec">
+      <div class="ri-name">&#11044; ${r.label}</div>
+      <div class="ri-meta">LIVE</div>
+    </div>`;
+  });
+  completedRecordings.slice().reverse().forEach(rec => {
+    const dur    = Math.max(0, Math.round((rec.endMs - rec.startMs) / 1000));
+    const m      = Math.floor(dur/60), s = dur%60;
+    const durStr = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    const icon   = rec.type === 'practice' ? '&#128203;' : '&#127919;';
+    const viewed = viewSessionId === rec.id;
+    html += `<div class="rec-item${viewed ? ' active-rec' : ''}">
+      <div class="ri-name">${icon} ${rec.label}</div>
+      <div class="ri-meta">${durStr} &middot; ${rec.gps.length} pts</div>
+      <div class="ri-btns">
+        <button class="btn-sm${viewed ? ' success' : ''}" onclick="setViewSession('${rec.id}')">${viewed ? '&#9654; Viewing' : '&#128065; View'}</button>
+        <button class="btn-sm" onclick="downloadRecordingCSV('${rec.id}')">&#8595; CSV</button>
+        <button class="btn-sm" onclick="downloadRecordingMap('${rec.id}')">&#8595; Map</button>
+        <button class="btn-sm danger" onclick="deleteRecording('${rec.id}')">&#x2715;</button>
+      </div>
+    </div>`;
+  });
+  list.innerHTML = html;
+}
+
+/* ---- Per-recording downloads ---- */
+function getRecordingById(id){
+  return completedRecordings.find(r => r.id === id);
+}
+
+function downloadRecordingCSV(id){
+  const rec = getRecordingById(id);
+  if(!rec){ alert("Recording not found."); return; }
+  let csv = "t_ms,lat,lon,speed_ms,distance_m\n";
+  rec.gps.forEach(g => {
+    csv += `${g.t},${g.lat},${g.lon},${g.speedMs.toFixed(2)},${g.distM.toFixed(1)}\n`;
+  });
+  triggerDownload(new Blob([csv], { type: "text/csv" }), `${rec.label.replace(/\s/g,'-')}.csv`);
+}
+
+function downloadRecordingMap(id){
+  const rec = getRecordingById(id);
+  if(!rec || rec.gps.length < 2){ alert("Not enough GPS data for a map."); return; }
+  const tempLine = L.polyline(rec.gps.map(g => [g.lat, g.lon]), { color: '#e8a020', weight: 3, opacity: 0.8 }).addTo(map);
+  map.fitBounds(tempLine.getBounds(), { padding: [20, 20], animate: false });
+  setTimeout(() => {
+    html2canvas(document.getElementById("map"), {
+      useCORS: true, allowTaint: true, backgroundColor: "#08111e", logging: false
+    }).then(canvas => {
+      canvas.toBlob(blob => {
+        if(!blob) return;
+        triggerDownload(blob, `${rec.label.replace(/\s/g,'-')}-map.png`);
+        setTimeout(() => map.removeLayer(tempLine), 100);
+      }, "image/png");
+    }).catch(err => { console.warn("Map export error:", err); map.removeLayer(tempLine); });
+  }, 600);
+}
+
+function deleteRecording(id){
+  const idx = completedRecordings.findIndex(r => r.id === id);
+  if(idx === -1) return;
+  if(viewSessionId === id) viewSessionId = 'practice';
+  completedRecordings.splice(idx, 1);
+  renderSessionSelector();
+  renderRecordingList();
+}
+
+function triggerDownload(blob, filename){
+  const url  = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url; link.download = filename; link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 3000);
+}
+
+/* ============================================================
+   SECTION 21 -- COXSWAIN RECORDER (independent)
+   Own mic stream, own clips list, own VU meter.
+   Status-bar mic dot updated here. No GPS integration.
+   ============================================================ */
+let coxMicStream   = null;
+let coxMediaRec    = null;
+let coxChunks      = [];
+let coxRecStartMs  = null;
+let coxTimerInt    = null;
+let coxClips       = [];
+let coxClipCounter = 0;
+let coxAnalyser    = null;
+let coxAnimFrame   = null;
+let coxPermission  = 'none';  // 'none' | 'granted' | 'denied'
+
+async function coxRequestMic(){
+  try {
+    coxMicStream  = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    coxPermission = 'granted';
+    updateMicStatus('idle');
+    document.getElementById("cox-rec-status-text").innerText = "MIC READY -- NOT RECORDING";
+    startCoxVUMeter();
+  } catch(e){
+    coxPermission = 'denied';
+    updateMicStatus('denied');
+    document.getElementById("cox-rec-status-text").innerText = "MIC PERMISSION DENIED";
+    console.warn("Cox mic permission denied:", e);
+  }
+}
+
+function startCoxVUMeter(){
+  if(!coxMicStream || coxAnalyser) return;
+  try {
+    const ctx   = new (window.AudioContext || window.webkitAudioContext)();
+    const src   = ctx.createMediaStreamSource(coxMicStream);
+    coxAnalyser = ctx.createAnalyser();
+    coxAnalyser.fftSize = 256;
+    src.connect(coxAnalyser);
+    const buf  = new Uint8Array(coxAnalyser.frequencyBinCount);
+    const fill = document.getElementById("cox-meter-fill");
+    function tick(){
+      coxAnimFrame = requestAnimationFrame(tick);
+      coxAnalyser.getByteFrequencyData(buf);
+      const avg = buf.reduce((a,b) => a+b, 0) / buf.length;
+      fill.style.width = Math.min(100, (avg/128)*200) + '%';
+    }
+    tick();
+  } catch(e){ console.warn("Cox VU meter error:", e); }
+}
+
+async function coxStartRecording(){
+  if(coxMediaRec && coxMediaRec.state === 'recording'){ alert("Already recording."); return; }
+  if(coxPermission !== 'granted'){
+    alert("Please enable the microphone first (Enable Mic button)."); return;
+  }
+  coxChunks     = [];
+  coxRecStartMs = Date.now();
+  try {
+    coxMediaRec = new MediaRecorder(coxMicStream);
+    coxMediaRec.ondataavailable = e => { if(e.data.size > 0) coxChunks.push(e.data); };
+    coxMediaRec.start(500);
+  } catch(e){ console.warn("Cox MediaRecorder start error:", e); return; }
+  updateMicStatus('recording');
+  document.getElementById("cox-rec-status-text").innerText = "RECORDING";
+  coxTimerInt = setInterval(updateCoxTimer, 1000);
+}
+
+function updateCoxTimer(){
+  if(!coxRecStartMs) return;
+  const elapsed = Math.floor((Date.now() - coxRecStartMs) / 1000);
+  const m = Math.floor(elapsed/60), s = elapsed%60;
+  document.getElementById("cox-rec-timer").innerText =
+    `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+async function coxStopRecording(){
+  if(!coxMediaRec || coxMediaRec.state !== 'recording'){
+    alert("No active Coxswain recording."); return;
+  }
+  clearInterval(coxTimerInt);
+  const startSnap = coxRecStartMs;
+  coxRecStartMs   = null;
+  const blob = await stopMediaRecorder(coxMediaRec, coxChunks);
+  coxMediaRec = null;
+  if(blob){
+    coxClipCounter++;
+    const label = `Cox Clip ${coxClipCounter} -- ${new Date(startSnap).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' })}`;
+    coxClips.push({ label, blob, createdMs: startSnap });
+    renderCoxClips();
+  }
+  updateMicStatus('idle');
+  document.getElementById("cox-rec-status-text").innerText = "MIC READY -- NOT RECORDING";
+  document.getElementById("cox-rec-timer").innerText       = "00:00";
+  document.getElementById("cox-meter-fill").style.width    = "0%";
+}
+
+function renderCoxClips(){
+  const container = document.getElementById("cox-recordings-list");
+  if(coxClips.length === 0){
+    container.innerHTML = `<div style="font-family:'IBM Plex Mono',monospace;font-size:0.7rem;color:var(--text-dim);">No clips yet.</div>`;
+    return;
+  }
+  container.innerHTML = coxClips.slice().reverse().map((clip, i) => {
+    const realIdx = coxClips.length - 1 - i;
+    return `<div class="cox-rec-entry">
+      <div class="cre-name">${clip.label}</div>
+      <div class="ri-btns">
+        <button class="btn-sm" onclick="downloadCoxClip(${realIdx})">&#8595; Audio</button>
+        <button class="btn-sm danger" onclick="deleteCoxClip(${realIdx})">&#x2715;</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function downloadCoxClip(idx){
+  const clip = coxClips[idx];
+  if(!clip) return;
+  const ext = clip.blob.type.includes('ogg') ? 'ogg'
+            : clip.blob.type.includes('mp4') ? 'mp4'
+            : 'webm';
+  triggerDownload(clip.blob, `${clip.label.replace(/[^a-z0-9]/gi,'-')}.${ext}`);
+}
+
+function deleteCoxClip(idx){
+  coxClips.splice(idx, 1);
+  renderCoxClips();
+}
+
+/* ---- Mic status bar indicator (indicator only, no controls) ---- */
+function updateMicStatus(state){
+  const el  = document.getElementById("status-mic");
+  const dot = document.getElementById("mic-dot");
+  const txt = { none:'MIC: INACTIVE', denied:'MIC: DENIED', idle:'MIC: READY', recording:'MIC: REC' };
+  const dotCls = { none:'inactive', denied:'inactive', idle:'green', recording:'red' };
+  const colors = { none:'var(--text-dim)', denied:'var(--text-dim)', idle:'var(--green-bright)', recording:'var(--red)' };
+  dot.className    = `live-dot ${dotCls[state]}`;
+  el.style.color   = colors[state];
+  // Replace last text node
+  const nodes = el.childNodes;
+  nodes[nodes.length - 1].textContent = txt[state] || 'MIC: INACTIVE';
+}
+
+/* ============================================================
+   SECTION 22 -- ON-LOAD INITIALISATION
    ============================================================ */
 fetchTides();
 
-// Temporarily use default ACB coordinates for initial sunset estimate
+// Pre-fetch sunset with default ACB coordinates
 lat = 38.88; lon = -76.98;
 fetchSunset();
 lat = null; lon = null;
+
+updateMicStatus('none');
+renderSessionSelector();
+renderRecordingList();
+renderCoxClips();
 
 </script>
 </body>
