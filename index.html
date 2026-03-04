@@ -1427,9 +1427,12 @@ function onRaceModeToggle(){
    ============================================================ */
 function startGPSWatch(){
   if(!navigator.geolocation) return;
+  // Race mode: maximum precision, no caching.
+  // Training mode: allow up to 5-second-old cached positions and a generous
+  // timeout — the chip works far less hard, saving significant battery.
   const gpsOptions = raceModeActive
-    ? { enableHighAccuracy: true }
-    : { enableHighAccuracy: false, maximumAge: 3000 };
+    ? { enableHighAccuracy: true,  maximumAge: 0,    timeout: 5000  }
+    : { enableHighAccuracy: false, maximumAge: 5000, timeout: 10000 };
 
   gpsWatchId = navigator.geolocation.watchPosition(
     pos => {
@@ -1468,12 +1471,15 @@ async function enableSensors(){
   }
 
   if(headingSupported){
+    let lastOrientMs = 0;
     window.addEventListener("deviceorientationabsolute", e => {
-      if(e.alpha !== null){
-        boatHeading = 360 - e.alpha;
-        updateLive();
-        updateDeviceStatus();
-      }
+      if(e.alpha === null) return;
+      const now = Date.now();
+      if(now - lastOrientMs < 500) return;   // ignore events faster than 2/sec
+      lastOrientMs = now;
+      boatHeading = 360 - e.alpha;
+      updateLive();
+      updateDeviceStatus();
     });
   } else {
     alert("Heading sensor unavailable. Wind vector & bearing lock disabled.");
@@ -2134,9 +2140,24 @@ function haversineMiles(lat1, lon1, lat2, lon2){
 }
 
 /* ---- Prune old strikes and refresh display (called every second) ---- */
+let _lastLightningHash = '';   // dirty-flag: skip DOM writes when nothing changed
+
 function lightningTick(){
-  const cutoff = Date.now() - 30 * 60 * 1000;  // 30 minutes ago
-  recentStrikes = recentStrikes.filter(s => s.timeMs >= cutoff);
+  const cutoff    = Date.now() - 30 * 60 * 1000;
+  const prevCount = recentStrikes.length;
+  recentStrikes   = recentStrikes.filter(s => s.timeMs >= cutoff);
+
+  // Build a cheap hash: strike count + nearest distance bucket + ws state.
+  // If it matches last tick AND there are no active within-10mi strikes
+  // (those need the live elapsed timer to keep ticking), skip DOM writes.
+  const within10  = recentStrikes.filter(s => s.distMi <= 10);
+  const nearest   = recentStrikes.length > 0 ? Math.min(...recentStrikes.map(s => s.distMi)).toFixed(1) : 'none';
+  const hash      = `${recentStrikes.length}|${nearest}|${lightningWSOpen}`;
+  const hasActive = within10.length > 0;   // elapsed timer must keep ticking
+
+  if(hash === _lastLightningHash && !hasActive && prevCount === recentStrikes.length) return;
+  _lastLightningHash = hash;
+
   updateLightningDisplay();
 }
 
@@ -2509,6 +2530,8 @@ async function coxRequestMic(){
 }
 
 function startCoxVUMeter(){
+  // Set up the AudioContext + analyser once when mic is granted,
+  // but DON'T start the animation loop yet — that only runs while recording.
   if(!coxMicStream || coxAnalyser) return;
   try {
     const ctx   = new (window.AudioContext || window.webkitAudioContext)();
@@ -2516,16 +2539,26 @@ function startCoxVUMeter(){
     coxAnalyser = ctx.createAnalyser();
     coxAnalyser.fftSize = 256;
     src.connect(coxAnalyser);
-    const buf  = new Uint8Array(coxAnalyser.frequencyBinCount);
-    const fill = document.getElementById("cox-meter-fill");
-    function tick(){
-      coxAnimFrame = requestAnimationFrame(tick);
-      coxAnalyser.getByteFrequencyData(buf);
-      const avg = buf.reduce((a,b) => a+b, 0) / buf.length;
-      fill.style.width = Math.min(100, (avg/128)*200) + '%';
-    }
-    tick();
-  } catch(e){ console.warn("Cox VU meter error:", e); }
+  } catch(e){ console.warn("Cox VU meter setup error:", e); }
+}
+
+function startCoxVUAnimation(){
+  if(!coxAnalyser || coxAnimFrame) return;
+  const buf  = new Uint8Array(coxAnalyser.frequencyBinCount);
+  const fill = document.getElementById("cox-meter-fill");
+  function tick(){
+    coxAnimFrame = requestAnimationFrame(tick);
+    coxAnalyser.getByteFrequencyData(buf);
+    const avg = buf.reduce((a,b) => a+b, 0) / buf.length;
+    fill.style.width = Math.min(100, (avg/128)*200) + '%';
+  }
+  tick();
+}
+
+function stopCoxVUAnimation(){
+  if(coxAnimFrame){ cancelAnimationFrame(coxAnimFrame); coxAnimFrame = null; }
+  const fill = document.getElementById("cox-meter-fill");
+  if(fill) fill.style.width = '0%';
 }
 
 async function coxStartRecording(){
@@ -2543,6 +2576,7 @@ async function coxStartRecording(){
   updateMicStatus('recording');
   document.getElementById("cox-rec-status-text").innerText = "RECORDING";
   coxTimerInt = setInterval(updateCoxTimer, 1000);
+  startCoxVUAnimation();   // start meter only while recording
 }
 
 function updateCoxTimer(){
@@ -2568,10 +2602,10 @@ async function coxStopRecording(){
     coxClips.push({ label, blob, createdMs: startSnap });
     renderCoxClips();
   }
+  stopCoxVUAnimation();    // stop meter when not recording
   updateMicStatus('idle');
   document.getElementById("cox-rec-status-text").innerText = "MIC READY -- NOT RECORDING";
   document.getElementById("cox-rec-timer").innerText       = "00:00";
-  document.getElementById("cox-meter-fill").style.width    = "0%";
 }
 
 function renderCoxClips(){
@@ -2638,6 +2672,36 @@ renderCoxClips();
 // Start Blitzortung lightning WebSocket
 connectLightningWS();
 lightningTickInterval = setInterval(lightningTick, 1000);
+
+// Refresh relative wind display every 10 seconds
+let windRefreshInterval = setInterval(updateLive, 10000);
+
+// ── Page Visibility: pause all background work when screen is off ──────────
+// Resumes instantly when the user returns — no features are lost.
+document.addEventListener('visibilitychange', () => {
+  if(document.hidden){
+    // Pause lightning ticker and wind refresh
+    clearInterval(lightningTickInterval);
+    clearInterval(windRefreshInterval);
+    lightningTickInterval = null;
+    windRefreshInterval   = null;
+    // Pause VU meter animation if running (cox recorder)
+    if(coxAnimFrame){ cancelAnimationFrame(coxAnimFrame); coxAnimFrame = null; }
+  } else {
+    // Resume — restart any intervals that were cleared
+    if(!lightningTickInterval)
+      lightningTickInterval = setInterval(lightningTick, 1000);
+    if(!windRefreshInterval)
+      windRefreshInterval = setInterval(updateLive, 10000);
+    // Resume VU meter if recorder is still active
+    if(coxMediaRec && coxMediaRec.state === 'recording') startCoxVUAnimation();
+    // Reconnect lightning WS if it dropped while hidden
+    if(!lightningWSOpen) connectLightningWS();
+    // Immediately refresh displays so they're current when user returns
+    updateLightningDisplay();
+    updateLive();
+  }
+});
 
 </script>
 </body>
