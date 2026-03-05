@@ -235,6 +235,9 @@ header {
 #race-mode-label          { min-width: 3.5rem; text-align: left; }
 #race-mode-label.on  { color: var(--teal-bright); }
 #race-mode-label.off { color: var(--text-dim); }
+#wake-lock-label          { min-width: 3.5rem; text-align: left; }
+#wake-lock-label.on  { color: var(--teal-bright); }
+#wake-lock-label.off { color: var(--text-dim); }
 
 /* ============================================================
    MAIN GRID
@@ -1424,26 +1427,10 @@ const NOAA_STATION = "8594900";
 
 /* ============================================================
    ╔══════════════════════════════════════════════════════╗
-   ║    SECTION 2 — COMPASS TICK MARKS (drawn once)      ║
+   ║    SECTION 2 — (boat diagram is static SVG,         ║
+   ║    no JS initialisation needed here)                ║
    ╚══════════════════════════════════════════════════════╝
    ============================================================ */
-(function drawTicks(){
-  const g  = document.getElementById('ticks');
-  const cx = 55, cy = 55, r1 = 50;
-  for(let i = 0; i < 36; i++){
-    const angle = (i * 10 - 90) * Math.PI / 180;
-    const major = (i % 9 === 0);
-    const r3    = major ? 38 : 42;
-    const x1 = cx + r1 * Math.cos(angle), y1 = cy + r1 * Math.sin(angle);
-    const x2 = cx + r3 * Math.cos(angle), y2 = cy + r3 * Math.sin(angle);
-    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-    line.setAttribute('x1', x1); line.setAttribute('y1', y1);
-    line.setAttribute('x2', x2); line.setAttribute('y2', y2);
-    line.setAttribute('stroke',       major ? 'rgba(13,181,162,0.8)' : 'rgba(13,138,122,0.35)');
-    line.setAttribute('stroke-width', major ? '1.5' : '0.8');
-    g.appendChild(line);
-  }
-})();
 
 /* ============================================================
    ╔══════════════════════════════════════════════════════╗
@@ -1491,12 +1478,7 @@ function onRaceModeToggle(){
   label.textContent = raceModeActive ? 'ON' : 'OFF';
   label.className   = raceModeActive ? 'on' : 'off';
   updateDeviceStatus();
-  // Restart GPS watch with updated accuracy settings
-  if(gpsWatchId !== null && navigator.geolocation){
-    navigator.geolocation.clearWatch(gpsWatchId);
-    gpsWatchId = null;
-    startGPSWatch();
-  }
+  // GPS options are identical in both modes — no restart needed
 }
 
 /* ============================================================
@@ -2232,6 +2214,7 @@ function connectLightningWS(){
   };
 
   lightningWS.onmessage = (evt) => {
+    wsLastMessageMs = Date.now();   // track feed health
     try {
       const data = JSON.parse(evt.data);
       // Blitzortung sends individual strike objects: {lat, lon, time, ...}
@@ -2887,7 +2870,7 @@ document.addEventListener('visibilitychange', () => {
     if(!lightningTickInterval)
       lightningTickInterval = setInterval(lightningTick, 1000);
     if(!windRefreshInterval)
-      windRefreshInterval = setInterval(updateLive, 10000);
+      windRefreshInterval = setInterval(() => { updateLive(); updateWindStaleness(); }, 10000);
     // Resume VU meter if recorder is still active
     if(coxMediaRec && coxMediaRec.state === 'recording') startCoxVUAnimation();
     // Reconnect lightning WS if it dropped while hidden
