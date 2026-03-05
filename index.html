@@ -351,63 +351,67 @@ main {
   margin-left: 0.2rem;
 }
 
-.compass-wrap { display: flex; justify-content: center; align-items: center; }
-
-.compass { position: relative; width: 110px; height: 110px; }
-
-.compass-ring {
-  width: 110px; height: 110px;
-  border-radius: 50%;
-  border: 1px solid var(--border-bright);
-  position: absolute;
-  background: radial-gradient(circle, var(--navy-light) 0%, var(--navy) 100%);
-  box-shadow: 0 0 20px rgba(13,138,122,0.2), inset 0 0 20px rgba(0,0,0,0.4);
+.compass-wrap {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 0.35rem;
 }
 
-.compass-label {
-  position: absolute;
+.compass-caption {
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 0.55rem;
-  font-weight: 500;
-  color: var(--teal-bright);
+  font-size: 0.58rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  text-align: center;
 }
 
-.compass-label.n { top: 4px;    left: 50%; transform: translateX(-50%); }
-.compass-label.s { bottom: 4px; left: 50%; transform: translateX(-50%); }
-.compass-label.e { right: 4px;  top: 50%;  transform: translateY(-50%); }
-.compass-label.w { left: 4px;   top: 50%;  transform: translateY(-50%); }
+/* Sized container so the absolute-positioned SVG and wind arrow
+   stay inside and don't overflow into other cards */
+.boat-diagram {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  flex-shrink: 0;
+}
 
+/* Wind arrow — anchored to centre of boat diagram, rotates to show
+   relative wind angle. transform-origin at bottom so it pivots
+   from the boat centre outward. */
 #windArrow {
   position: absolute;
-  top: 50%; left: 50%;
-  width: 4px; height: 50px;
+  top: 50%;
+  left: 50%;
+  width: 4px;
+  height: 52px;
   background: linear-gradient(180deg, var(--amber) 0%, transparent 100%);
-  transform-origin: 50% 90%;
-  transform: translateX(-50%) translateY(-90%) rotate(0deg);
+  transform-origin: 50% 100%;
+  transform: translateX(-50%) translateY(-100%) rotate(0deg);
   transition: transform 0.5s ease;
   border-radius: 2px 2px 0 0;
+  z-index: 3;
+  pointer-events: none;
 }
 
 #windArrow::after {
   content: '';
   position: absolute;
-  top: 0; left: 50%;
+  top: -10px;
+  left: 50%;
   transform: translateX(-50%);
-  width: 0; height: 0;
+  width: 0;
+  height: 0;
   border-left:   5px solid transparent;
   border-right:  5px solid transparent;
   border-bottom: 10px solid var(--amber);
 }
 
-.center-dot {
-  position: absolute;
-  top: 50%; left: 50%;
-  width: 8px; height: 8px;
-  border-radius: 50%;
-  background: var(--teal-bright);
-  transform: translate(-50%, -50%);
-  z-index: 2;
-}
+.compass { position: relative; width: 110px; height: 110px; }
+
+
+
 
 #impact-badge {
   font-family: 'Teko', sans-serif;
@@ -982,6 +986,14 @@ input:focus { border-color: var(--teal-bright); }
       <span id="race-mode-label" class="off">OFF</span>
     </div>
 
+    <div class="race-mode-toggle">
+      <span>Stay Awake</span>
+      <label class="toggle-switch" title="Keeps screen on using the Wake Lock API">
+        <input type="checkbox" id="wake-lock-checkbox" onchange="onWakeLockToggle()">
+        <span class="toggle-slider"></span>
+      </label>
+      <span id="wake-lock-label" class="off">OFF</span>
+    </div>
     <button class="btn-primary" onclick="enableSensors()">Enable GPS &amp; Heading</button>
   </div>
 </header>
@@ -994,6 +1006,10 @@ input:focus { border-color: var(--teal-bright); }
   <div class="card">
     <div class="card-label">Live Sensors</div>
     <h2>Wind &amp; Heading</h2>
+    <div id="wind-staleness" style="font-family:'IBM Plex Mono',monospace;font-size:0.62rem;
+         letter-spacing:0.1em;color:var(--text-dim);margin-bottom:0.6rem;">
+      WIND DATA: NOT YET FETCHED
+    </div>
     <div class="wind-layout">
       <div class="wind-data-row">
         <div class="data-item">
@@ -1011,17 +1027,62 @@ input:focus { border-color: var(--teal-bright); }
         <div id="impact-badge">—</div>
       </div>
       <div class="compass-wrap">
-        <div class="compass">
-          <div class="compass-ring"></div>
-          <svg style="position:absolute;inset:0;" width="110" height="110">
-            <g id="ticks"></g>
+        <div class="compass-caption">BOW &uarr; &nbsp;&nbsp; arrow = wind direction</div>
+        <div class="boat-diagram">
+          <svg viewBox="0 0 140 140" width="140" height="140"
+               style="display:block;" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="70" cy="70" r="66"
+              fill="rgba(8,17,30,0.6)" stroke="rgba(13,138,122,0.25)" stroke-width="1"/>
+            <text x="70" y="13" text-anchor="middle"
+              font-family="IBM Plex Mono,monospace" font-size="9" fill="#0d8a7a" letter-spacing="1">BOW</text>
+            <text x="70" y="135" text-anchor="middle"
+              font-family="IBM Plex Mono,monospace" font-size="9" fill="#4a6275" letter-spacing="1">STERN</text>
+            <text x="8"  y="74" text-anchor="middle"
+              font-family="IBM Plex Mono,monospace" font-size="9" fill="#4a6275">P</text>
+            <text x="132" y="74" text-anchor="middle"
+              font-family="IBM Plex Mono,monospace" font-size="9" fill="#4a6275">S</text>
+            <g stroke="rgba(13,138,122,0.3)" stroke-width="1">
+              <line x1="70" y1="8"   x2="70" y2="18"/>
+              <line x1="70" y1="122" x2="70" y2="132"/>
+              <line x1="8"  y1="70"  x2="18" y2="70"/>
+              <line x1="122" y1="70" x2="132" y2="70"/>
+              <line x1="24" y1="24"  x2="30" y2="30"/>
+              <line x1="110" y1="24" x2="116" y2="30"/>
+              <line x1="24" y1="116" x2="30" y2="110"/>
+              <line x1="110" y1="116" x2="116" y2="110"/>
+            </g>
+            <!-- Port oars -->
+            <rect x="14" y="56" width="22" height="5" rx="2" fill="none" stroke="#1a3a50" stroke-width="1.5"/>
+            <rect x="14" y="79" width="22" height="5" rx="2" fill="none" stroke="#1a3a50" stroke-width="1.5"/>
+            <line x1="36" y1="58.5" x2="56" y2="62" stroke="#1a3a50" stroke-width="1"/>
+            <line x1="36" y1="81.5" x2="56" y2="78" stroke="#1a3a50" stroke-width="1"/>
+            <!-- Starboard oars -->
+            <rect x="104" y="56" width="22" height="5" rx="2" fill="none" stroke="#1a3a50" stroke-width="1.5"/>
+            <rect x="104" y="79" width="22" height="5" rx="2" fill="none" stroke="#1a3a50" stroke-width="1.5"/>
+            <line x1="104" y1="58.5" x2="84" y2="62" stroke="#1a3a50" stroke-width="1"/>
+            <line x1="104" y1="81.5" x2="84" y2="78" stroke="#1a3a50" stroke-width="1"/>
+            <!-- Hull -->
+            <path d="M70,22 C62,24 54,32 52,45 L50,70 L52,95 C54,108 62,116 70,118 C78,116 86,108 88,95 L90,70 L88,45 C86,32 78,24 70,22 Z"
+              fill="#0d1e30" stroke="#0d8a7a" stroke-width="1.5"/>
+            <line x1="70" y1="26" x2="70" y2="114"
+              stroke="rgba(13,138,122,0.2)" stroke-width="1" stroke-dasharray="3,4"/>
+            <!-- Rigger points -->
+            <circle cx="56" cy="62" r="2.5" fill="#0d8a7a" opacity="0.7"/>
+            <circle cx="56" cy="78" r="2.5" fill="#0d8a7a" opacity="0.7"/>
+            <circle cx="84" cy="62" r="2.5" fill="#0d8a7a" opacity="0.7"/>
+            <circle cx="84" cy="78" r="2.5" fill="#0d8a7a" opacity="0.7"/>
+            <!-- Cox seat -->
+            <rect x="63" y="95" width="14" height="8" rx="2"
+              fill="#0a1a28" stroke="rgba(13,138,122,0.4)" stroke-width="1"/>
+            <!-- Rower seats -->
+            <rect x="63" y="60" width="14" height="7" rx="1.5"
+              fill="#0a1a28" stroke="rgba(13,138,122,0.3)" stroke-width="1"/>
+            <rect x="63" y="73" width="14" height="7" rx="1.5"
+              fill="#0a1a28" stroke="rgba(13,138,122,0.3)" stroke-width="1"/>
+            <!-- Bow ball -->
+            <circle cx="70" cy="22" r="3" fill="#0d8a7a" opacity="0.9"/>
           </svg>
-          <span class="compass-label n">N</span>
-          <span class="compass-label s">S</span>
-          <span class="compass-label e">E</span>
-          <span class="compass-label w">W</span>
           <div id="windArrow"></div>
-          <div class="center-dot"></div>
         </div>
       </div>
     </div>
@@ -1336,9 +1397,25 @@ let gpsUpdateCount = 0;
 // Weather throttle
 let lastWeatherFetch      = 0;
 const WEATHER_THROTTLE_MS = 5 * 60 * 1000;  // 5 minutes
+let   weatherFetchedAt    = null;
+
+// Wake Lock
+let wakeLock = null;
 
 // Lightning throttle
 // (Lightning now uses a persistent WebSocket — no polling throttle needed)
+
+// GPS speed smoothing — 5-fix rolling average to eliminate the jitter
+// that makes split times jump around at rowing speeds
+const SPEED_SMOOTH_N = 5;
+let   speedBuffer    = [];
+
+function smoothedSpeed(rawMs){
+  if(rawMs > 0) speedBuffer.push(rawMs);
+  if(speedBuffer.length > SPEED_SMOOTH_N) speedBuffer.shift();
+  if(speedBuffer.length === 0) return 0;
+  return speedBuffer.reduce((a, b) => a + b, 0) / speedBuffer.length;
+}
 
 // NOAA station
 const NOAA_STATION = "8594900";
@@ -1422,6 +1499,41 @@ function onRaceModeToggle(){
 
 /* ============================================================
    ╔══════════════════════════════════════════════════════╗
+   ║   SECTION 5b — SCREEN WAKE LOCK                     ║
+   ╚══════════════════════════════════════════════════════╝
+   ============================================================ */
+async function onWakeLockToggle(){
+  const cb = document.getElementById('wake-lock-checkbox');
+  if(cb.checked){ await acquireWakeLock(); }
+  else { await releaseWakeLock(); setWakeLockLabel(false); }
+}
+
+async function acquireWakeLock(){
+  if(!('wakeLock' in navigator)){
+    alert('Screen Wake Lock is not supported in this browser.');
+    document.getElementById('wake-lock-checkbox').checked = false;
+    return;
+  }
+  try {
+    wakeLock = await navigator.wakeLock.request('screen');
+    setWakeLockLabel(true);
+    wakeLock.addEventListener('release', () => setWakeLockLabel(false));
+  } catch(e){ console.warn('Wake lock failed:', e); }
+}
+
+async function releaseWakeLock(){
+  if(wakeLock){ await wakeLock.release(); wakeLock = null; }
+}
+
+function setWakeLockLabel(on){
+  const lbl = document.getElementById('wake-lock-label');
+  if(!lbl) return;
+  lbl.textContent = on ? 'ON' : 'OFF';
+  lbl.className   = on ? 'on' : 'off';
+}
+
+/* ============================================================
+   ╔══════════════════════════════════════════════════════╗
    ║   SECTION 6 — GPS WATCH (restartable)               ║
    ╚══════════════════════════════════════════════════════╝
    ============================================================ */
@@ -1432,7 +1544,7 @@ function startGPSWatch(){
   // timeout — the chip works far less hard, saving significant battery.
   const gpsOptions = raceModeActive
     ? { enableHighAccuracy: true,  maximumAge: 0,    timeout: 5000  }
-    : { enableHighAccuracy: false, maximumAge: 5000, timeout: 10000 };
+    : { enableHighAccuracy: true,  maximumAge: 3000, timeout: 8000  };
 
   gpsWatchId = navigator.geolocation.watchPosition(
     pos => {
@@ -1521,7 +1633,7 @@ function updateLive(){
     document.getElementById("windspeed").innerText = windSpeed.toFixed(1);
     const rel = (windDir - boatHeading + 360) % 360;
     document.getElementById("windArrow").style.transform =
-      `translateX(-50%) translateY(-90%) rotate(${rel}deg)`;
+      `translateX(-50%) translateY(-100%) rotate(${rel}deg)`;
     const diff   = angleDiff(boatHeading, windDir);
     const impact = diff < 45  ? "HEADWIND"
                  : diff > 135 ? "TAILWIND"
@@ -1553,15 +1665,38 @@ async function fetchWeatherCurrent(){
                + `&current_weather=true&windspeed_unit=kn`;
     const res  = await fetch(url);
     const data = await res.json();
-    windDir   = data.current_weather.winddirection;
-    windSpeed = data.current_weather.windspeed;
+    windDir          = data.current_weather.winddirection;
+    windSpeed        = data.current_weather.windspeed;
+    weatherFetchedAt = Date.now();
     updateLive();
+    updateWindStaleness();
     fetchHourly();
     fetchSunset();
     const ts = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     document.getElementById("weather-last-fetch").innerText =
       `LAST FETCHED: ${ts}  ·  AUTO-REFRESH EVERY 5 MIN`;
   } catch(e){ console.warn("Weather fetch error:", e); }
+}
+
+function updateWindStaleness(){
+  const el = document.getElementById('wind-staleness');
+  if(!el) return;
+  if(weatherFetchedAt === null){
+    el.textContent = 'WIND DATA: NOT YET FETCHED';
+    el.style.color = 'var(--text-dim)';
+    return;
+  }
+  const minAgo = Math.floor((Date.now() - weatherFetchedAt) / 60000);
+  if(minAgo < 1){
+    el.textContent = 'WIND DATA: JUST UPDATED';
+    el.style.color = 'var(--green-bright)';
+  } else if(minAgo < 6){
+    el.textContent = `WIND DATA: ${minAgo} MIN AGO`;
+    el.style.color = 'var(--text-dim)';
+  } else {
+    el.textContent = `WIND DATA: ${minAgo} MIN AGO — POSSIBLY STALE`;
+    el.style.color = 'var(--amber)';
+  }
 }
 
 async function fetchHourly(){
@@ -1852,7 +1987,8 @@ function updateTelemetryDisplay(speedMs){
    ╚══════════════════════════════════════════════════════╝
    ============================================================ */
 function updateSpeed(pos){
-  const speedMs = pos.coords.speed ? pos.coords.speed : 0;
+  const rawSpeed = pos.coords.speed ? pos.coords.speed : 0;
+  const speedMs  = smoothedSpeed(rawSpeed);   // 5-fix rolling average
 
   if(raceActive){
     const _lat = pos.coords.latitude;
@@ -1983,6 +2119,8 @@ function lockBearing(){
   document.getElementById("locked").innerText = lockedBearing.toFixed(0);
 }
 
+let lastHapticMs = 0;
+
 function updateBearing(){
   if(!headingSupported || lockedBearing === null || boatHeading === null) return;
   const diff = angleDiff(boatHeading, lockedBearing);
@@ -1990,6 +2128,13 @@ function updateBearing(){
   const el   = document.getElementById("bearing-diff");
   el.innerText   = diff < 1 ? "ON COURSE" : `${diff.toFixed(1)}° OFF — CORRECT ${dir}`;
   el.style.color = diff < 2 ? "var(--green-bright)" : diff < 10 ? "var(--amber)" : "var(--red)";
+
+  // Haptic pulse when off course — max once every 5 seconds
+  // Moderate (10–19°): two short pulses. Severe (≥20°): two short + one long.
+  if(navigator.vibrate && diff >= 10 && (Date.now() - lastHapticMs) > 5000){
+    lastHapticMs = Date.now();
+    navigator.vibrate(diff >= 20 ? [100, 80, 100, 80, 200] : [150, 100, 150]);
+  }
 }
 
 /* ============================================================
@@ -2058,6 +2203,7 @@ let wsServerIdx = 0;
 
 // Ticker that runs every second: prune old strikes + refresh display
 let lightningTickInterval = null;
+let prevLightningState    = 'unknown';
 
 /* ---- Connect to Blitzortung WebSocket ---- */
 function connectLightningWS(){
@@ -2223,9 +2369,49 @@ function updateLightningDisplay(){
     count20:  within20.length.toString()
   });
 
-  const status = lightningWSOpen ? 'LIVE \u2014 WS CONNECTED' : 'RECONNECTING\u2026';
+  let wsHealth;
+  if(!lightningWSOpen){
+    wsHealth = 'RECONNECTING\u2026';
+  } else if(wsLastMessageMs === null){
+    wsHealth = 'CONNECTED \u2014 awaiting first strike';
+  } else {
+    const secAgo = Math.floor((Date.now() - wsLastMessageMs) / 1000);
+    wsHealth = secAgo < 60
+      ? `LIVE \u2014 last msg ${secAgo}s ago`
+      : `LIVE \u2014 last msg ${Math.floor(secAgo/60)}m ago (quiet period)`;
+  }
   document.getElementById("lightning-last-fetch").innerText =
-    `${status}  \u00b7  ${recentStrikes.length} strikes in 30-min buffer  \u00b7  Auto-refresh: 1s`;
+    `${wsHealth}  \u00b7  ${recentStrikes.length} strikes in 30-min buffer`;
+}
+
+/* ---- Audio alert on lightning state change ---- */
+function playLightningAlert(newState){
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const schedule = (freq, startT, dur, vol) => {
+      const osc = ctx.createOscillator();
+      const g   = ctx.createGain();
+      osc.connect(g); g.connect(ctx.destination);
+      osc.frequency.value = freq;
+      osc.type = 'sine';
+      g.gain.setValueAtTime(0, startT);
+      g.gain.linearRampToValueAtTime(vol, startT + 0.02);
+      g.gain.linearRampToValueAtTime(0,   startT + dur);
+      osc.start(startT); osc.stop(startT + dur + 0.05);
+    };
+    const t = ctx.currentTime;
+    if(newState === 'danger'){
+      schedule(880, t,       0.25, 0.5);
+      schedule(660, t + 0.3, 0.25, 0.5);
+      schedule(440, t + 0.6, 0.4,  0.6);
+    } else if(newState === 'caution'){
+      schedule(660, t,       0.25, 0.35);
+      schedule(550, t + 0.3, 0.35, 0.35);
+    } else if(newState === 'safe'){
+      schedule(440, t,       0.15, 0.2);
+      schedule(660, t + 0.2, 0.3,  0.25);
+    }
+  } catch(e){ console.warn('Lightning audio alert failed:', e); }
 }
 
 /* ---- Apply state to lightning card UI ---- */
@@ -2243,6 +2429,13 @@ function setLightningUI({ state, stateText, nearest, lastTime, count10, count20 
 
   // Card top accent matches safety state
   card.className = `card full-width lightning-${state}`;
+
+  // Audio alert on state worsening or clearing
+  const worse  = (prevLightningState === 'safe'   && (state === 'caution' || state === 'danger'))
+              || (prevLightningState === 'caution' &&  state === 'danger');
+  const better = (prevLightningState === 'danger' || prevLightningState === 'caution') && state === 'safe';
+  if((worse || better) && prevLightningState !== 'unknown') playLightningAlert(state);
+  prevLightningState = state;
 }
 
 // Called from GPS update loop (keeps distances current as boat moves)
@@ -2697,6 +2890,8 @@ document.addEventListener('visibilitychange', () => {
     if(coxMediaRec && coxMediaRec.state === 'recording') startCoxVUAnimation();
     // Reconnect lightning WS if it dropped while hidden
     if(!lightningWSOpen) connectLightningWS();
+    // Re-acquire wake lock if user had it enabled
+    if(document.getElementById('wake-lock-checkbox')?.checked) acquireWakeLock();
     // Immediately refresh displays so they're current when user returns
     updateLightningDisplay();
     updateLive();
