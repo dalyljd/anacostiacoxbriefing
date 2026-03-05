@@ -1411,7 +1411,9 @@ const SPEED_SMOOTH_N = 5;
 let   speedBuffer    = [];
 
 function smoothedSpeed(rawMs){
-  if(rawMs > 0) speedBuffer.push(rawMs);
+  // Only add to buffer if speed is a real positive value —
+  // null coerced to 0 or a genuine stationary reading both stay out
+  if(rawMs > 0.1) speedBuffer.push(rawMs);
   if(speedBuffer.length > SPEED_SMOOTH_N) speedBuffer.shift();
   if(speedBuffer.length === 0) return 0;
   return speedBuffer.reduce((a, b) => a + b, 0) / speedBuffer.length;
@@ -1539,12 +1541,11 @@ function setWakeLockLabel(on){
    ============================================================ */
 function startGPSWatch(){
   if(!navigator.geolocation) return;
-  // Race mode: maximum precision, no caching.
-  // Training mode: allow up to 5-second-old cached positions and a generous
-  // timeout — the chip works far less hard, saving significant battery.
-  const gpsOptions = raceModeActive
-    ? { enableHighAccuracy: true,  maximumAge: 0,    timeout: 5000  }
-    : { enableHighAccuracy: true,  maximumAge: 3000, timeout: 8000  };
+  // Always use high accuracy with no position caching (maximumAge: 0).
+  // maximumAge > 0 caused some devices to serve stale cached positions
+  // (minutes old) which made the map jump. Battery saving comes from the
+  // orientation throttle and page-visibility pause instead.
+  const gpsOptions = { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 };
 
   gpsWatchId = navigator.geolocation.watchPosition(
     pos => {
@@ -1854,6 +1855,7 @@ function startRace(){
   lastPosition   = null;
   raceData       = [];
   gpsUpdateCount = 0;
+  speedBuffer    = [];   // clear smoothing buffer so old speeds don't bleed in
   path.setLatLngs([]);
   // The display timer is driven by updateTelemetryDisplay(), not a separate interval
 }
