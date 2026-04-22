@@ -2081,12 +2081,31 @@ function downloadData(){
   csvLink.href = csvUrl; csvLink.download = "race-data.csv"; csvLink.click();
   setTimeout(() => URL.revokeObjectURL(csvUrl), 2000);
 
-  // Part B: Map PNG via leaflet-image (correctly composites tiles + route)
+  // Part B: Map PNG via leaflet-image + manual route drawing
+  // leaflet-image captures tiles correctly but doesn't reliably composite
+  // Leaflet vector layers, so we draw the route line manually onto the canvas.
   const routePoints = path.getLatLngs();
   if(routePoints.length > 1) map.fitBounds(path.getBounds(), { padding: [20, 20], animate: false });
   setTimeout(() => {
     leafletImage(map, (err, canvas) => {
       if(err || !canvas){ console.warn("leaflet-image error:", err); return; }
+
+      // Draw route line manually onto the returned canvas
+      if(routePoints.length > 1){
+        const ctx = canvas.getContext('2d');
+        ctx.strokeStyle = '#12b5a2';
+        ctx.lineWidth   = 3;
+        ctx.lineJoin    = 'round';
+        ctx.lineCap     = 'round';
+        ctx.beginPath();
+        routePoints.forEach((latlng, i) => {
+          const pt = map.latLngToContainerPoint(latlng);
+          if(i === 0) ctx.moveTo(pt.x, pt.y);
+          else        ctx.lineTo(pt.x, pt.y);
+        });
+        ctx.stroke();
+      }
+
       canvas.toBlob(blob => {
         if(!blob){ console.warn("Map canvas export failed"); return; }
         const pngUrl  = URL.createObjectURL(blob);
@@ -2223,11 +2242,12 @@ function startCountdown(){
 
 // Rolling 30-minute buffer of nearby strikes
 // Each entry: { lat, lon, timeMs, distMi }
-let recentStrikes   = [];
-let lightningWS     = null;
-let lightningWSOpen = false;
+let recentStrikes    = [];
+let lightningWS      = null;
+let lightningWSOpen  = false;
 let wsReconnectTimer = null;
-const WS_SERVERS    = [
+let wsLastMessageMs  = null;   // timestamp of last received WS message
+const WS_SERVERS     = [
   'wss://ws1.blitzortung.org:3000',
   'wss://ws5.blitzortung.org:3000',
   'wss://ws6.blitzortung.org:3000',
@@ -2267,21 +2287,18 @@ function connectLightningWS(){
     wsLastMessageMs = Date.now();   // track feed health
     try {
       const data = JSON.parse(evt.data);
-      // Blitzortung sends individual strike objects: {lat, lon, time, ...}
-      // time is in nanoseconds since epoch
+      // Blitzortung sends strike objects: {lat, lon, time}
+      // lat/lon are decimal degrees. time is nanoseconds since epoch.
       if(data.lat !== undefined && data.lon !== undefined && data.time !== undefined){
-        const timeMs  = data.time / 1e6;   // nanoseconds → ms
-        const strikeLat = data.lat / 1e4;  // Blitzortung encodes as integer * 1e4... actually depends on version
-        const strikeLon = data.lon / 1e4;
-        ingestStrike(strikeLat, strikeLon, timeMs);
+        const timeMs = data.time / 1e6;   // nanoseconds → ms
+        ingestStrike(data.lat, data.lon, timeMs);
       } else if(Array.isArray(data.strikes)){
-        // Some versions batch as {strikes: [{lat,lon,time},...]}
+        // Some server versions batch as {strikes: [{lat,lon,time},...]}
         data.strikes.forEach(s => {
-          const timeMs = s.time / 1e6;
-          ingestStrike(s.lat, s.lon, timeMs);
+          if(s.lat !== undefined && s.lon !== undefined){
+            ingestStrike(s.lat, s.lon, s.time ? s.time / 1e6 : Date.now());
+          }
         });
-      } else if(typeof data === 'object' && data.lat !== undefined){
-        ingestStrike(data.lat, data.lon, data.time ? data.time / 1e6 : Date.now());
       }
     } catch(e){ /* non-strike message, ignore */ }
   };
@@ -2689,6 +2706,7 @@ function downloadRecordingCSV(id){
   // Build 500m interval rows from raw GPS fixes
   let csv = "interval_500m,distance_m,elapsed_s,avg_split_per_500m,lat,lon\n";
   let lastInterval = -1;
+  let lastG        = null;
   rec.gps.forEach(g => {
     const interval = Math.floor(g.distM / 500);
     if(interval > lastInterval && g.distM > 0){
@@ -2700,7 +2718,22 @@ function downloadRecordingCSV(id){
       csv += `${interval},${g.distM.toFixed(1)},${elapsedSec.toFixed(1)},`
            + `${m}:${String(s).padStart(2,'0')},${g.lat},${g.lon}\n`;
     }
+    lastG = g;
   });
+
+  // Append a final row for the incomplete interval beyond the last 500m mark,
+  // if there are any metres left over. Distance column shows only those metres.
+  if(lastG && lastG.distM > 0){
+    const remainder = lastG.distM % 500;
+    if(remainder > 5){   // ignore if essentially on a boundary
+      const elapsedSec  = (lastG.t - rec.startMs) / 1000;
+      const avgSplitSec = elapsedSec / (lastG.distM / 500);
+      const m = Math.floor(avgSplitSec / 60);
+      const s = Math.floor(avgSplitSec % 60);
+      csv += `partial,${remainder.toFixed(1)},${elapsedSec.toFixed(1)},`
+           + `${m}:${String(s).padStart(2,'0')},${lastG.lat},${lastG.lon}\n`;
+    }
+  }
 
   triggerDownload(new Blob([csv], { type: "text/csv" }), `${rec.label.replace(/\s/g,'-')}.csv`);
 }
@@ -2708,15 +2741,31 @@ function downloadRecordingCSV(id){
 function downloadRecordingMap(id){
   const rec = getRecordingById(id);
   if(!rec || rec.gps.length < 2){ alert("Not enough GPS data for a map."); return; }
-  const tempLine = L.polyline(rec.gps.map(g => [g.lat, g.lon]), { color: '#e8a020', weight: 3, opacity: 0.8 }).addTo(map);
-  map.fitBounds(tempLine.getBounds(), { padding: [20, 20], animate: false });
+  const recPoints = rec.gps.map(g => L.latLng(g.lat, g.lon));
+  map.fitBounds(L.latLngBounds(recPoints), { padding: [20, 20], animate: false });
   setTimeout(() => {
     leafletImage(map, (err, canvas) => {
-      if(err || !canvas){ console.warn("leaflet-image error:", err); map.removeLayer(tempLine); return; }
+      if(err || !canvas){ console.warn("leaflet-image error:", err); return; }
+
+      // Draw route line manually onto the returned canvas
+      if(recPoints.length > 1){
+        const ctx = canvas.getContext('2d');
+        ctx.strokeStyle = '#e8a020';
+        ctx.lineWidth   = 3;
+        ctx.lineJoin    = 'round';
+        ctx.lineCap     = 'round';
+        ctx.beginPath();
+        recPoints.forEach((latlng, i) => {
+          const pt = map.latLngToContainerPoint(latlng);
+          if(i === 0) ctx.moveTo(pt.x, pt.y);
+          else        ctx.lineTo(pt.x, pt.y);
+        });
+        ctx.stroke();
+      }
+
       canvas.toBlob(blob => {
-        if(!blob){ map.removeLayer(tempLine); return; }
+        if(!blob) return;
         triggerDownload(blob, `${rec.label.replace(/\s/g,'-')}-map.png`);
-        setTimeout(() => map.removeLayer(tempLine), 100);
       }, "image/png");
     });
   }, 600);
