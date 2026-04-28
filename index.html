@@ -568,6 +568,54 @@ tbody tr:hover { background: rgba(13,138,122,0.05); }
 }
 
 /* ============================================================
+   RACE PLAN
+   ============================================================ */
+.race-plan-row {
+  display: grid;
+  grid-template-columns: auto 1fr 1fr auto;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.race-plan-row input {
+  margin-top: 0;
+  width: 100%;
+}
+
+.race-plan-cue-banner {
+  display: none;
+  position: fixed;
+  top: 4rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--amber);
+  color: #08111e;
+  font-family: 'Teko', sans-serif;
+  font-size: 1.6rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  padding: 0.6rem 1.8rem;
+  border-radius: 4px;
+  z-index: 9999;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+  text-align: center;
+  max-width: 90vw;
+}
+
+.race-plan-cue-banner.visible {
+  display: block;
+  animation: cueFade 3.5s ease forwards;
+}
+
+@keyframes cueFade {
+  0%   { opacity: 0; transform: translateX(-50%) translateY(-6px); }
+  10%  { opacity: 1; transform: translateX(-50%) translateY(0); }
+  75%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* ============================================================
    COXSWAIN TOOLS
    ============================================================ */
 .tools-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
@@ -1101,6 +1149,26 @@ input:focus { border-color: var(--teal-bright); }
     <div class="card-label">GPS Race Telemetry · Session Recording</div>
     <h2>Race Monitor</h2>
 
+    <!-- Smart recording toggles -->
+    <div style="display:flex;flex-wrap:wrap;gap:1rem;margin-bottom:1rem;">
+      <div class="race-mode-toggle">
+        <span>Auto-Pause Splits</span>
+        <label class="toggle-switch" title="Freezes the split display when the boat stops moving. Distance and elapsed time continue normally.">
+          <input type="checkbox" id="auto-pause-checkbox" onchange="onAutoPauseToggle()">
+          <span class="toggle-slider"></span>
+        </label>
+        <span id="auto-pause-label" class="off">OFF</span>
+      </div>
+      <div class="race-mode-toggle">
+        <span>Auto-Start</span>
+        <label class="toggle-switch" title="Recording clock begins the moment the boat starts moving after you hit Start.">
+          <input type="checkbox" id="auto-start-checkbox" onchange="onAutoStartToggle()">
+          <span class="toggle-slider"></span>
+        </label>
+        <span id="auto-start-label" class="off">OFF</span>
+      </div>
+    </div>
+
     <!-- Session selector strip — updates live display to chosen session -->
     <div id="session-selector-wrap" style="margin-bottom:0.8rem;">
       <div class="rec-section-title" style="margin-bottom:0.4rem;">Viewing Session</div>
@@ -1183,6 +1251,63 @@ input:focus { border-color: var(--teal-bright); }
       </div>
     </div>
   </div>
+
+  <!-- ====================================================
+       CARD 2b — RACE PLAN
+       ==================================================== -->
+  <div class="card full-width">
+    <div class="card-label">Fires on next Practice or Piece start · not saved between sessions</div>
+    <h2>Race Plan</h2>
+
+    <!-- Armed toggle -->
+    <div class="race-mode-toggle" style="margin-bottom:1rem;">
+      <span>Race Plan Active</span>
+      <label class="toggle-switch">
+        <input type="checkbox" id="race-plan-armed" onchange="onRacePlanToggle()">
+        <span class="toggle-slider"></span>
+      </label>
+      <span id="race-plan-label" class="off">OFF</span>
+    </div>
+
+    <!-- Mode selector -->
+    <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1rem;">
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:0.78rem;
+                   color:var(--text-dim);letter-spacing:0.08em;">CUE MODE</span>
+      <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;
+                    font-family:'IBM Plex Mono',monospace;font-size:0.82rem;color:var(--text-bright);">
+        <input type="radio" name="rp-mode" value="meters" id="rp-meters" checked
+               style="width:auto;margin:0;"> Meters
+      </label>
+      <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;
+                    font-family:'IBM Plex Mono',monospace;font-size:0.82rem;color:var(--text-bright);">
+        <input type="radio" name="rp-mode" value="minutes" id="rp-minutes"
+               style="width:auto;margin:0;"> Minutes
+      </label>
+    </div>
+
+    <!-- Column headers -->
+    <div class="race-plan-row" style="margin-bottom:0.25rem;">
+      <div></div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:0.68rem;
+                  color:var(--text-dim);letter-spacing:0.1em;">AT (m or m:ss)</div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:0.68rem;
+                  color:var(--text-dim);letter-spacing:0.1em;">WHAT TO SAY</div>
+      <div></div>
+    </div>
+
+    <!-- Cue rows injected here -->
+    <div id="race-plan-rows"></div>
+
+    <!-- Add cue button -->
+    <button class="btn-sm" style="margin-top:0.6rem;" onclick="addRacePlanRow()">+ Add Cue</button>
+
+    <!-- Status line shown during active plan -->
+    <div id="race-plan-status" style="font-family:'IBM Plex Mono',monospace;font-size:0.72rem;
+         color:var(--text-dim);margin-top:0.8rem;letter-spacing:0.08em;min-height:1.2em;"></div>
+  </div>
+
+  <!-- Cue banner — fixed overlay, shown briefly on each cue fire -->
+  <div class="race-plan-cue-banner" id="race-plan-banner"></div>
 
   <!-- ====================================================
        CARD 3 — HOURLY WEATHER (full-width)
@@ -1950,12 +2075,14 @@ function updateTelemetryDisplay(speedMs){
     document.getElementById("race-time").innerText =
       `${String(dm).padStart(2,'0')}:${String(ds).padStart(2,'0')}`;
 
-    if(distM > 0){
+    if(distM > 0 && !splitsPaused){
       const avgSec = durSec / (distM / 500);
       document.getElementById("split500").innerText =
         `${Math.floor(avgSec/60)}:${String(Math.floor(avgSec%60)).padStart(2,'0')}`;
+    } else if(splitsPaused){
+      document.getElementById("split500").innerText = "PAUSED";
     }
-    if(speedMs > 0){
+    if(speedMs > 0 && !splitsPaused){
       const sp = 500 / speedMs;
       document.getElementById("speed").innerText =
         `${Math.floor(sp/60)}:${String(Math.floor(sp%60)).padStart(2,'0')}`;
@@ -1963,6 +2090,9 @@ function updateTelemetryDisplay(speedMs){
       const est = rem / speedMs;
       document.getElementById("nextSplit").innerText =
         `${Math.floor(est/60)}:${String(Math.floor(est%60)).padStart(2,'0')}`;
+    } else if(splitsPaused){
+      document.getElementById("speed").innerText    = "PAUSED";
+      document.getElementById("nextSplit").innerText= "—";
     }
   }
 }
@@ -1980,6 +2110,36 @@ function updateTelemetryDisplay(speedMs){
 function updateSpeed(pos){
   const rawSpeed = pos.coords.speed ? pos.coords.speed : 0;
   const speedMs  = smoothedSpeed(rawSpeed);   // 5-fix rolling average
+  const isMoving = speedMs >= AUTO_STOP_THRESHOLD_MS;
+
+  // ── Auto-start: begin recording the moment the boat moves ──────
+  if(autoStartPending && isMoving){
+    autoStartPending = false;
+    if(autoStartTarget === 'practice'){
+      practiceStartMs = Date.now();
+      startRace();
+      viewSessionId   = 'practice';
+      document.getElementById("practice-rec-status").innerText   = "● RECORDING";
+      document.getElementById("practice-rec-status").style.color = "var(--red)";
+      practiceTimerInt = setInterval(updatePracticeTimer, 1000);
+      renderSessionSelector();
+      renderRecordingList();
+      maybeArmRacePlan();
+    } else if(autoStartTarget === 'piece'){
+      // Stamp the actual start time on the pending piece
+      const piece = activePieces[activePieces.length - 1];
+      if(piece && piece.startMs === null){
+        piece.startMs = Date.now();
+        maybeArmRacePlan();
+      }
+    }
+    autoStartTarget = null;
+  }
+
+  // ── Auto-pause: freeze split display only when stopped ─────────
+  if(autoPauseEnabled){
+    splitsPaused = !isMoving;
+  }
 
   if(raceActive){
     const _lat = pos.coords.latitude;
@@ -2028,34 +2188,44 @@ function updateSpeed(pos){
   // ---- Update telemetry display ----
   if(viewSessionId === 'practice'){
     // Write directly from live practice accumulators
-    if(speedMs > 0){
-      const sp = 500 / speedMs;
-      document.getElementById("speed").innerText =
-        `${Math.floor(sp/60)}:${String(Math.floor(sp%60)).padStart(2,'0')}`;
+    if(splitsPaused){
+      document.getElementById("speed").innerText    = "PAUSED";
+      document.getElementById("split500").innerText = "PAUSED";
+      document.getElementById("nextSplit").innerText= "—";
     } else {
-      document.getElementById("speed").innerText = "—";
+      if(speedMs > 0){
+        const sp = 500 / speedMs;
+        document.getElementById("speed").innerText =
+          `${Math.floor(sp/60)}:${String(Math.floor(sp%60)).padStart(2,'0')}`;
+      } else {
+        document.getElementById("speed").innerText = "—";
+      }
+
+      if(raceActive){
+        document.getElementById("distance").innerText = totalDistance.toFixed(1);
+
+        const elapsed = (Date.now() - raceStartTime) / 1000;
+        const em = Math.floor(elapsed / 60), es = Math.floor(elapsed % 60);
+        document.getElementById("race-time").innerText =
+          `${String(em).padStart(2,'0')}:${String(es).padStart(2,'0')}`;
+
+        if(totalDistance > 0){
+          const avgSec = elapsed / (totalDistance / 500);
+          document.getElementById("split500").innerText =
+            `${Math.floor(avgSec/60)}:${String(Math.floor(avgSec%60)).padStart(2,'0')}`;
+        }
+
+        if(speedMs > 0){
+          const rem = 500 - (totalDistance % 500);
+          const est = rem / speedMs;
+          document.getElementById("nextSplit").innerText =
+            `${Math.floor(est/60)}:${String(Math.floor(est%60)).padStart(2,'0')}`;
+        }
+      }
     }
 
-    if(raceActive){
+    if(raceActive && !splitsPaused){
       document.getElementById("distance").innerText = totalDistance.toFixed(1);
-
-      const elapsed = (Date.now() - raceStartTime) / 1000;
-      const em = Math.floor(elapsed / 60), es = Math.floor(elapsed % 60);
-      document.getElementById("race-time").innerText =
-        `${String(em).padStart(2,'0')}:${String(es).padStart(2,'0')}`;
-
-      if(totalDistance > 0){
-        const avgSec = elapsed / (totalDistance / 500);
-        document.getElementById("split500").innerText =
-          `${Math.floor(avgSec/60)}:${String(Math.floor(avgSec%60)).padStart(2,'0')}`;
-      }
-
-      if(speedMs > 0){
-        const rem = 500 - (totalDistance % 500);
-        const est = rem / speedMs;
-        document.getElementById("nextSplit").innerText =
-          `${Math.floor(est/60)}:${String(Math.floor(est%60)).padStart(2,'0')}`;
-      }
     }
   } else {
     // Delegate to session-aware display
@@ -2188,6 +2358,198 @@ function updateBearing(){
     lastVoiceMs = now;
     speakBearing(diff, rawDir);
   }
+}
+
+/* ============================================================
+   ╔══════════════════════════════════════════════════════╗
+   ║   SECTION 17b — RACE PLAN                           ║
+   ║                                                      ║
+   ║   Cues are typed in by the coxswain before a race.  ║
+   ║   Each cue has a threshold (meters or elapsed secs) ║
+   ║   and a text string to speak aloud + flash on        ║
+   ║   screen. Fires once per cue when threshold is       ║
+   ║   crossed during an active recording.               ║
+   ╚══════════════════════════════════════════════════════╝
+   ============================================================ */
+
+// State
+// Auto-pause splits and auto-start state
+const AUTO_STOP_THRESHOLD_MS = 0.5;  // m/s — below this = not rowing (~16:40 split)
+let autoPauseEnabled  = false;
+let autoStartEnabled  = false;
+let splitsPaused      = false;   // true when auto-pause has frozen split display
+let autoStartPending  = false;   // true when waiting for movement to begin recording
+let autoStartTarget   = null;    // 'practice' | 'piece'
+
+function onAutoPauseToggle(){
+  autoPauseEnabled = document.getElementById('auto-pause-checkbox').checked;
+  const lbl = document.getElementById('auto-pause-label');
+  lbl.textContent = autoPauseEnabled ? 'ON' : 'OFF';
+  lbl.className   = autoPauseEnabled ? 'on' : 'off';
+  if(!autoPauseEnabled) splitsPaused = false;
+}
+
+function onAutoStartToggle(){
+  autoStartEnabled = document.getElementById('auto-start-checkbox').checked;
+  const lbl = document.getElementById('auto-start-label');
+  lbl.textContent = autoStartEnabled ? 'ON' : 'OFF';
+  lbl.className   = autoStartEnabled ? 'on' : 'off';
+}
+
+let racePlanArmed    = false;
+let racePlanActive   = false;
+let racePlanCues     = [];   // [{threshold (secs or meters), text, fired}]
+let racePlanMode     = 'meters';  // 'meters' | 'minutes'
+let racePlanStartMs  = null;
+let racePlanInterval = null;
+let racePlanRowCount = 0;
+
+/* ---- Toggle ---- */
+function onRacePlanToggle(){
+  racePlanArmed = document.getElementById('race-plan-armed').checked;
+  const lbl     = document.getElementById('race-plan-label');
+  lbl.textContent = racePlanArmed ? 'ARMED' : 'OFF';
+  lbl.className   = racePlanArmed ? 'on'    : 'off';
+  document.getElementById('race-plan-status').textContent =
+    racePlanArmed ? 'Armed — will fire on next Start.' : '';
+}
+
+/* ---- Add / remove cue rows ---- */
+function addRacePlanRow(){
+  racePlanRowCount++;
+  const id  = `rp-row-${racePlanRowCount}`;
+  const div = document.createElement('div');
+  div.className = 'race-plan-row';
+  div.id        = id;
+  div.innerHTML = `
+    <span style="font-family:'IBM Plex Mono',monospace;font-size:0.75rem;
+                 color:var(--text-dim);">#${racePlanRowCount}</span>
+    <input type="text" placeholder="e.g. 500 or 1:30" id="rp-thresh-${racePlanRowCount}"
+           style="font-size:0.82rem;">
+    <input type="text" placeholder="e.g. Settle to race pace" id="rp-text-${racePlanRowCount}"
+           style="font-size:0.82rem;">
+    <button class="btn-sm danger" style="padding:0.25rem 0.6rem;font-size:0.75rem;"
+            onclick="removeRacePlanRow('${id}')">✕</button>`;
+  document.getElementById('race-plan-rows').appendChild(div);
+}
+
+function removeRacePlanRow(id){
+  const el = document.getElementById(id);
+  if(el) el.remove();
+}
+
+/* ---- Parse threshold string → seconds or meters ---- */
+function parseRacePlanThreshold(raw){
+  raw = raw.trim();
+  if(!raw) return null;
+  // m:ss or h:mm:ss format → seconds
+  if(raw.includes(':')){
+    const parts = raw.split(':').map(Number);
+    if(parts.some(isNaN)) return null;
+    if(parts.length === 2) return parts[0] * 60 + parts[1];
+    if(parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+    return null;
+  }
+  // Plain number
+  const n = parseFloat(raw);
+  return isNaN(n) ? null : n;
+}
+
+/* ---- Build and arm the cue list ---- */
+function armRacePlan(){
+  racePlanMode  = document.querySelector('input[name="rp-mode"]:checked').value;
+  racePlanCues  = [];
+  // Gather all rows regardless of numbering (some may have been deleted)
+  const threshInputs = document.querySelectorAll('[id^="rp-thresh-"]');
+  threshInputs.forEach(inp => {
+    const num     = inp.id.replace('rp-thresh-', '');
+    const textEl  = document.getElementById(`rp-text-${num}`);
+    if(!textEl) return;
+    const thresh  = parseRacePlanThreshold(inp.value);
+    const text    = textEl.value.trim();
+    if(thresh !== null && text){
+      racePlanCues.push({ threshold: thresh, text, fired: false });
+    }
+  });
+  // Sort ascending so we fire in order
+  racePlanCues.sort((a, b) => a.threshold - b.threshold);
+  racePlanActive  = racePlanCues.length > 0;
+  racePlanStartMs = Date.now();
+
+  if(racePlanActive){
+    document.getElementById('race-plan-status').textContent =
+      `ACTIVE — ${racePlanCues.length} cue${racePlanCues.length > 1 ? 's' : ''} loaded (${racePlanMode} mode).`;
+    // Tick every second
+    if(racePlanInterval) clearInterval(racePlanInterval);
+    racePlanInterval = setInterval(tickRacePlan, 1000);
+  }
+}
+
+/* ---- Tick — called every second while plan is active ---- */
+function tickRacePlan(){
+  if(!racePlanActive || !racePlanStartMs) return;
+
+  const elapsedSec = (Date.now() - racePlanStartMs) / 1000;
+  const distM      = totalDistance;   // live GPS distance from race monitor
+
+  let allFired = true;
+  racePlanCues.forEach(cue => {
+    if(cue.fired){ return; }
+    allFired = false;
+
+    const crossed = racePlanMode === 'meters'
+      ? distM      >= cue.threshold
+      : elapsedSec >= cue.threshold;
+
+    if(crossed){
+      cue.fired = true;
+      fireRacePlanCue(cue.text);
+    }
+  });
+
+  if(allFired && racePlanCues.length > 0){
+    stopRacePlan();
+    document.getElementById('race-plan-status').textContent = 'All cues fired — plan complete.';
+  }
+}
+
+/* ---- Fire a single cue — speak + flash banner ---- */
+function fireRacePlanCue(text){
+  // Voice
+  if(window.speechSynthesis){
+    window.speechSynthesis.cancel();
+    const u  = new SpeechSynthesisUtterance(text);
+    u.rate   = 1.0;
+    u.volume = 1.0;
+    window.speechSynthesis.speak(u);
+  }
+
+  // Banner
+  const banner = document.getElementById('race-plan-banner');
+  banner.textContent = text;
+  banner.classList.remove('visible');
+  // Force reflow so animation restarts if a previous cue just finished
+  void banner.offsetWidth;
+  banner.classList.add('visible');
+  setTimeout(() => banner.classList.remove('visible'), 3600);
+}
+
+/* ---- Stop plan cleanly ---- */
+function stopRacePlan(){
+  racePlanActive = false;
+  if(racePlanInterval){ clearInterval(racePlanInterval); racePlanInterval = null; }
+}
+
+/* ---- Called from startPracticeRecording and startPieceRecording ---- */
+function maybeArmRacePlan(){
+  if(!racePlanArmed) return;
+  armRacePlan();
+  // Disarm toggle after firing so it doesn't re-arm on the next start
+  // unless the user re-enables it
+  racePlanArmed = false;
+  document.getElementById('race-plan-armed').checked  = false;
+  document.getElementById('race-plan-label').textContent = 'OFF';
+  document.getElementById('race-plan-label').className   = 'off';
 }
 
 /* ============================================================
@@ -2525,14 +2887,26 @@ function startPracticeRecording(){
   if(practiceStartMs !== null){ alert("Practice already in progress."); return; }
   practiceGPS     = [];
   practiceMetrics = [];
+
+  if(autoStartEnabled){
+    // Arm the auto-start listener — actual recording begins on first movement
+    autoStartPending = true;
+    autoStartTarget  = 'practice';
+    document.getElementById("practice-rec-status").innerText   = "⏳ WAITING FOR MOVEMENT…";
+    document.getElementById("practice-rec-status").style.color = "var(--amber)";
+    return;
+  }
+
+  // Normal immediate start
   practiceStartMs = Date.now();
-  startRace();                    // activate GPS accumulation
+  startRace();
   viewSessionId   = 'practice';
   document.getElementById("practice-rec-status").innerText   = "● RECORDING";
   document.getElementById("practice-rec-status").style.color = "var(--red)";
   practiceTimerInt = setInterval(updatePracticeTimer, 1000);
   renderSessionSelector();
   renderRecordingList();
+  maybeArmRacePlan();
 }
 
 function updatePracticeTimer(){
@@ -2560,6 +2934,10 @@ function stopPracticeRecording(){
   }
 
   stopRace();   // deactivate GPS accumulation
+  stopRacePlan();
+  splitsPaused     = false;
+  autoStartPending = false;
+  autoStartTarget  = null;
 
   const startSnap = practiceStartMs;
   const endMs     = Date.now();
@@ -2583,15 +2961,32 @@ function stopPracticeRecording(){
 function startPieceRecording(){
   if(!practiceStartMs){ alert("Start a Practice session first."); return; }
   pieceCounter++;
+
+  if(autoStartEnabled){
+    // Store a pending piece — startMs will be set when movement is detected
+    autoStartPending = true;
+    autoStartTarget  = 'piece';
+    // Reserve the piece slot with a placeholder startMs; updated on movement
+    const piece = { id:`piece-${Date.now()}`, label:`Piece ${pieceCounter}`, startMs:null, gps:[], metrics:[] };
+    activePieces.push(piece);
+    viewSessionId = piece.id;
+    renderSessionSelector();
+    renderRecordingList();
+    return;
+  }
+
+  // Normal immediate start
   const piece = { id:`piece-${Date.now()}`, label:`Piece ${pieceCounter}`, startMs:Date.now(), gps:[], metrics:[] };
   activePieces.push(piece);
-  viewSessionId = piece.id;    // auto-switch display to this piece
+  viewSessionId = piece.id;
   renderSessionSelector();
   renderRecordingList();
+  maybeArmRacePlan();
 }
 
 function stopCurrentPiece(){
   if(activePieces.length === 0){ alert("No active piece."); return; }
+  stopRacePlan();
   const piece = activePieces.pop();
   completedRecordings.push({
     id:piece.id, type:'piece', label:piece.label,
@@ -2957,6 +3352,9 @@ updateMicStatus('none');
 renderSessionSelector();
 renderRecordingList();
 renderCoxClips();
+
+// Seed race plan with one empty row
+addRacePlanRow();
 
 // Start Blitzortung lightning WebSocket
 connectLightningWS();
